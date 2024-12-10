@@ -1,0 +1,10 @@
+Flask==3.1.0                 # For the core Flask framework
+Flask-SQLAlchemy==3.1.1      # For database ORM and integration
+Flask-Migrate==4.0.7         # For database migrations
+Flask-Bcrypt==1.0.1          # For password hashing
+pyodbc==5.2.0                # For connecting to SQL Server
+SQLAlchemy==2.0.36           # For advanced ORM support
+Werkzeug==3.1.3              # For core Flask utilities
+Flask==2.2.2
+Flask-SQLAlchemy==3.0.2
+pyodbc==4.0.35
