@@ -18,7 +18,7 @@
 #     df.to_excel('visitors_report.xlsx', index=False)
 #     return send_file('visitors_report.xlsx', as_attachment=True)
 from flask import Blueprint, render_template, session, redirect, url_for
-from models.visitor import Visitor
+from . import Visitor
 
 report_blueprint = Blueprint("report", __name__)
 

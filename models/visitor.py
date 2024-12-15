@@ -1,36 +1,21 @@
-# from flask_sqlalchemy import SQLAlchemy
-# from flask_bcrypt import Bcrypt
+from datetime import datetime
+from . import db
 
-# db = SQLAlchemy()
-# bcrypt = Bcrypt()
+class VisitorInfo(db.Model):
+    __tablename__ = 'Visitor'
 
-# class User(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     username = db.Column(db.String(100), unique=True, nullable=False)
-#     password = db.Column(db.String(200), nullable=False)
-#     role = db.Column(db.String(50), nullable=False, default='user')  # 'admin' or 'user'
-
-#     def check_password(self, password):
-#         return bcrypt.check_password_hash(self.password, password)
-
-# class Visitor(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(100), nullable=False)
-#     contact = db.Column(db.String(100), nullable=False)
-#     purpose = db.Column(db.String(255), nullable=False)
-#     check_in = db.Column(db.DateTime, nullable=False)
-#     check_out = db.Column(db.DateTime, nullable=True)
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
-
-class Visitor(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    contact = db.Column(db.String(50), nullable=False)
-    purpose = db.Column(db.String(200), nullable=False)
-    check_in = db.Column(db.DateTime, nullable=False)
-    check_out = db.Column(db.DateTime, nullable=True)
+    ID = db.Column(db.Integer, primary_key=True)
+    Name = db.Column(db.String(255), nullable=False)
+    ContactNumber = db.Column(db.String(20), nullable=False)
+    Purpose = db.Column(db.String(255), nullable=False)
+    Address = db.Column(db.String(255), nullable=True)
+    CreatedBy = db.Column(db.String(255), nullable=False)
+    CreatedTime = db.Column(db.DateTime, default=datetime.now)
+    UpdatedBy = db.Column(db.String(255), nullable=False)
+    UpdatedTime = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    CheckIn = db.Column(db.DateTime, nullable=False)
+    CheckOut = db.Column(db.DateTime, nullable=True)
+    Photo = db.Column(db.String(255), nullable=True)
 
     def __repr__(self):
-        return f"<Visitor {self.name}>"
+        return (f"VisitorInfo(name={self.Name}, contact_number={self.ContactNumber}, "f"purpose={self.Purpose}, check_in={self.CheckIn}, check_out={self.CheckOut}, "f"photo={self.Photo})")

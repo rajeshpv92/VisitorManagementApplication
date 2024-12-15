@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Visitor</title>
+</head>
+<body>
+    <h2>Create Visitor</h2>
+    <form method="POST">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="contact">Contact Number:</label>
+        <input type="text" id="contact" name="contact" required><br><br>
+
+        <label for="purpose">Purpose:</label>
+        <input type="text" id="purpose" name="purpose" required><br><br>
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address"><br><br>
+
+        <label for="photo" class="form-label">Upload Visitor Photo:</label>
+        <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+
+        <button type="submit">Add Visitor</button>
+    </form>
+
+    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+</body>
+</html>

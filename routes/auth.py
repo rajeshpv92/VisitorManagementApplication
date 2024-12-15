@@ -1,47 +1,27 @@
-# from flask import Blueprint, render_template, redirect, request, url_for, flash, session
-# from models.visitor import User, db, bcrypt
+from flask import Blueprint, render_template, request, session, flash, redirect, url_for
+from . import UserInfo
+from . import db
 
-# auth = Blueprint('auth', __name__)
+auth = Blueprint('auth', __name__)
 
-# @auth.route('/login', methods=['GET', 'POST'])
-# def login():
-#     if request.method == 'POST':
-#         username = request.form['username']
-#         password = request.form['password']
-#         user = User.query.filter_by(username=username).first()
-#         if user and user.check_password(password):
-#             session['user_id'] = user.id
-#             session['role'] = user.role
-#             return redirect(url_for('home'))
-#         else:
-#             flash('Invalid credentials', 'danger')
-#     return render_template('login.html')
-
-# @auth.route('/logout')
-# def logout():
-#     session.clear()
-#     return redirect(url_for('auth.login'))
-from flask import Blueprint, render_template, redirect, url_for, request, session
-from flask_bcrypt import Bcrypt
-from models.visitor import db
-from services.db_service import User
-
-auth_blueprint = Blueprint("auth", __name__)
-
-@auth_blueprint.route("/login", methods=["GET", "POST"])
+@auth.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        user = User.query.filter_by(username=username).first()
-        if user and Bcrypt().check_password_hash(user.password, password):
-            session["user_id"] = user.id
-            session["is_admin"] = user.is_admin
-            return redirect(url_for("visitor.home"))
-        return "Invalid credentials"
-    return render_template("login.html")
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
 
-@auth_blueprint.route("/logout")
+        user = UserInfo.query.filter_by(userid=username).first()
+        if user and user.password == password:
+            session['username'] = username
+            session['role'] = user.role_id
+            return redirect(url_for('admin.dashboard'))  # Admin or user dashboard
+        else:
+            flash('Invalid username or password', 'danger')
+
+    return render_template('login.html')
+
+@auth.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for("auth.login"))
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('auth.login'))

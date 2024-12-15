@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor ID Card</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .id-card {
+            width: 350px;
+            height: 200px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-align: center;
+        }
+
+            .id-card .header {
+                background-color: #007bff;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 1.2em;
+                font-weight: bold;
+            }
+
+            .id-card img {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                object-fit: cover;
+                margin: 10px auto;
+            }
+
+            .id-card .info {
+                font-size: 0.9em;
+                color: #333;
+            }
+
+                .id-card .info div {
+                    margin: 5px 0;
+                }
+
+            .id-card .footer {
+                font-size: 0.8em;
+                color: #555;
+                border-top: 1px solid #ddd;
+                padding-top: 5px;
+            }
+
+        .print-button {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+            .print-button button {
+                padding: 10px 15px;
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+                .print-button button:hover {
+                    background-color: #218838;
+                }
+    </style>
+</head>
+<body>
+    <div class="id-card">
+        <!-- Header -->
+        <div class="header">
+            Visitor ID Card
+        </div>
+        <!-- Profile Picture -->
+        <img src="{{ visitor.photo_url or '/static/default_avatar.png' }}" alt="Visitor Photo">
+        <!-- Visitor Info -->
+        <div class="info">
+            <div><strong>Name:</strong> {{ visitor.name }}</div>
+            <div><strong>Company:</strong> {{ visitor.company }}</div>
+            <div><strong>Visit Date:</strong> {{ visitor.visit_date.strftime('%Y-%m-%d') }}</div>
+            <div><strong>Purpose:</strong> {{ visitor.purpose }}</div>
+        </div>
+        <!-- Footer -->
+        <div class="footer">
+            Issued by: Your Organization
+        </div>
+    </div>
+
+    <!-- Print Button -->
+    <div class="print-button">
+        <button onclick="window.print()">Print ID Card</button>
+    </div>
+</body>
+</html>

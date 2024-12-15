@@ -1,4 +1,4 @@
-from models.visitor import db
+from . import db
 from flask_bcrypt import generate_password_hash
 
 class User(db.Model):

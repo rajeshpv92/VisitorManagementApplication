@@ -1,24 +1,6 @@
-# from flask import Blueprint, render_template, request, redirect, url_for, flash
-# from models.visitor import Visitor, db
-# from datetime import datetime
-
-# visitor = Blueprint('visitor', __name__)
-
-# @visitor.route('/visitors', methods=['GET', 'POST'])
-# def manage_visitors():
-#     if request.method == 'POST':
-#         name = request.form['name']
-#         contact = request.form['contact']
-#         purpose = request.form['purpose']
-#         new_visitor = Visitor(name=name, contact=contact, purpose=purpose, check_in=datetime.now())
-#         db.session.add(new_visitor)
-#         db.session.commit()
-#         flash('Visitor added successfully!', 'success')
-#     visitors = Visitor.query.all()
-#     return render_template('manage_visitors.html', visitors=visitors)
 import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session
-from models.visitor import db, Visitor
+from models.visitor import db, Visitor # type: ignore
 
 visitor_blueprint = Blueprint("visitor", __name__)
 
