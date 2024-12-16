@@ -4,18 +4,24 @@ from . import db
 class VisitorInfo(db.Model):
     __tablename__ = 'Visitor'
 
+    # Define columns
     ID = db.Column(db.Integer, primary_key=True)
-    Name = db.Column(db.String(255), nullable=False)
-    ContactNumber = db.Column(db.String(20), nullable=False)
-    Purpose = db.Column(db.String(255), nullable=False)
-    Address = db.Column(db.String(255), nullable=True)
-    CreatedBy = db.Column(db.String(255), nullable=False)
-    CreatedTime = db.Column(db.DateTime, default=datetime.now)
-    UpdatedBy = db.Column(db.String(255), nullable=False)
-    UpdatedTime = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    CheckIn = db.Column(db.DateTime, nullable=False)
-    CheckOut = db.Column(db.DateTime, nullable=True)
-    Photo = db.Column(db.String(255), nullable=True)
+    Name = db.Column(db.String(255), nullable=False)  # Visitor's name
+    ContactNumber = db.Column(db.String(20), nullable=False)  # Contact number
+    Purpose = db.Column(db.String(255), nullable=False)  # Purpose of visit
+    Address = db.Column(db.String(255), nullable=True)  # Address (optional)
+    photo = db.Column(db.String(255), nullable=True)  # Path to uploaded photo
+    CreatedBy = db.Column(db.String(255), nullable=False)  # Creator of record
+    CreatedTime = db.Column(db.DateTime, default=datetime.now)  # Timestamp for creation
+    UpdatedBy = db.Column(db.String(255), nullable=False)  # Updater of record
+    UpdatedTime = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)  # Timestamp for updates
+    CheckIn = db.Column(db.DateTime, nullable=False)  # Check-in time
+    CheckOut = db.Column(db.DateTime, nullable=True)  # Check-out time (optional)
 
     def __repr__(self):
-        return (f"VisitorInfo(name={self.Name}, contact_number={self.ContactNumber}, "f"purpose={self.Purpose}, check_in={self.CheckIn}, check_out={self.CheckOut}, "f"photo={self.Photo})")
+        """String representation of the VisitorInfo model."""
+        return (
+            f"<VisitorInfo(ID={self.ID}, Name={self.Name}, ContactNumber={self.ContactNumber}, "
+            f"Purpose={self.Purpose}, Address={self.Address}, CheckIn={self.CheckIn}, "
+            f"CheckOut={self.CheckOut}, Photo={self.Photo})>"
+        )

@@ -69,6 +69,38 @@
 <body>
     <div class="container">
         <h1>Visitor List</h1>
+        <!-- Display Flash Messages using Bootstrap Modal -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <!-- Modal Structure -->
+        <div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="flashModalLabel">Notification</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Display each message -->
+                        {% for message in messages %}
+                        <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Modal Trigger Script -->
+        <script type="text/javascript">
+            window.onload = function () {
+                var myModal = new bootstrap.Modal(document.getElementById('flashModal'));
+                myModal.show(); // Show the modal when there are messages
+            };
+        </script>
+        {% endif %}
+        {% endwith %}
         <div class="table-responsive">
             <table class="table table-bordered table-striped">
                 <thead>
@@ -80,14 +112,15 @@
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Actions</th>
+                        <th>Print ID Card</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for visitor in visitors %}
                     <tr>
                         <td>
-                            {% if visitor.Photo %}
-                            <img src="{{ url_for('static', filename='uploads/' + visitor.Photo) }}" alt="Visitor Photo" class="visitor-photo">
+                            {% if visitor.photo %}
+                            <img src="{{ url_for('static', filename=visitor.photo.split('static/')[-1]) }}" alt="Visitor Photo" width="100">
                             {% else %}
                             <span>No Photo</span>
                             {% endif %}
@@ -107,8 +140,14 @@
                             <span class="checked-out">Checked Out</span>
                             {% endif %}
                         </td>
-                    </tr>
-                    {% endfor %}
+                        <!-- Button to proceed to print ID card page -->
+                        <td>
+                            <form action="{{ url_for('visitor_id') }}" method="POST">
+                                <input type="hidden" name="visitor_id" value="{{ visitor.ID }}">
+                                <button type="submit">Proceed to Print</button>
+                            </form>
+                        </td>
+                        {% endfor %}
                 </tbody>
             </table>
         </div>

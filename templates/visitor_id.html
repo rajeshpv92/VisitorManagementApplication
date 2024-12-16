@@ -18,7 +18,7 @@
 
         .id-card {
             width: 350px;
-            height: 200px;
+            height: auto; /* Auto height for flexible content */
             background: white;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -50,6 +50,7 @@
             .id-card .info {
                 font-size: 0.9em;
                 color: #333;
+                margin-bottom: 10px; /* Add space between info and footer */
             }
 
                 .id-card .info div {
@@ -61,10 +62,11 @@
                 color: #555;
                 border-top: 1px solid #ddd;
                 padding-top: 5px;
+                margin-top: 10px; /* Space between info and issued by text */
             }
 
         .print-button {
-            margin-top: 20px;
+            margin-top: 10px; /* Ensure there's space between footer and button */
             text-align: center;
         }
 
@@ -83,19 +85,20 @@
     </style>
 </head>
 <body>
+
     <div class="id-card">
         <!-- Header -->
         <div class="header">
             Visitor ID Card
         </div>
         <!-- Profile Picture -->
-        <img src="{{ visitor.photo_url or '/static/default_avatar.png' }}" alt="Visitor Photo">
+        <img src="{{ visitor.photo or '/static/uploads/default.jpeg' }}" alt="Visitor Photo">
         <!-- Visitor Info -->
         <div class="info">
-            <div><strong>Name:</strong> {{ visitor.name }}</div>
-            <div><strong>Company:</strong> {{ visitor.company }}</div>
-            <div><strong>Visit Date:</strong> {{ visitor.visit_date.strftime('%Y-%m-%d') }}</div>
-            <div><strong>Purpose:</strong> {{ visitor.purpose }}</div>
+            <div><strong>Name:</strong> {{ visitor.Name }}</div>
+            <div><strong>Contact Number:</strong> {{ visitor.ContactNumber }}</div>
+            <div><strong>Purpose:</strong> {{ visitor.Purpose }}</div>
+            <div><strong>CheckIn:</strong> {{ visitor.CheckIn.strftime('%Y-%m-%d %H:%M:%S') if visitor.CheckIn else 'N/A' }}</div>
         </div>
         <!-- Footer -->
         <div class="footer">
@@ -107,5 +110,6 @@
     <div class="print-button">
         <button onclick="window.print()">Print ID Card</button>
     </div>
+    <a href="{{ url_for('view_visitors') }}">Back to Dashboard</a>
 </body>
 </html>

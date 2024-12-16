@@ -11,6 +11,7 @@ from models.department import DepartmentInfo
 import pandas as pd
 from werkzeug.utils import secure_filename
 import os
+from config import Config  # Import your config class
 
 # Flask app factory
 def create_app():
@@ -32,6 +33,9 @@ def create_app():
 
     # Register routes
     register_routes(app)
+
+    # Load configuration from config.py
+    app.config.from_object(Config)
 
     with app.app_context():
         db.create_all()  # Ensure tables are created
@@ -151,48 +155,61 @@ def register_routes(app):
     # Create Visitor definition.
     @app.route("/create_visitor", methods=["GET", "POST"])
     def create_visitor():
+
+         # Initialize photo variable to None outside of the POST check
+        photo = None
+
         if request.method == "POST":
-            name = request.form.get("name")  # Consistent lowercase naming
+            name = request.form.get("name")
             contact = request.form.get("contact")
             purpose = request.form.get("purpose")
             address = request.form.get("address")
-            photo = request.files.get('photo')
+            photo = request.files.get("photo")
             created_by = updated_by = session.get("username")
+
+            # Debugging: print form data to see if it's being received correctly
+            print("Form Data - Name:", name, "Contact:", contact, "Purpose:", purpose)
 
             # Validation: check if all required fields are provided
             if not name or not contact or not purpose:
                 flash("All fields are required.", "danger")
-                return redirect(url_for("create_visitor"))
-
-            # Save the photo to a specific folder
-            if photo:
-                filename = secure_filename(photo.filename)  # Ensure safe filenames
-                photo_path = os.path.join('static/uploads', filename)
-                photo.save(photo_path)
-
-            try:
-                # Create a new VisitorInfo object to add to the database
-                new_visitor = VisitorInfo(
-                    Name=name,  # Match the model column name
-                    ContactNumber=contact,  # Match the model column name
-                    Purpose=purpose,  # Match the model column name
-                    Address=address,  # Match the model column name
-                    photo=photo_path, # Store the path to the photo in the database
-                    CreatedBy=created_by,  # Match the model column name
-                    UpdatedBy=updated_by,  # Match the model column name
-                    CreatedTime=datetime.now(),  # Automatically set created time
-                    UpdatedTime=datetime.now(),  # Automatically set updated time
-                    CheckIn=datetime.now(),  # Set current time as check-in
-                    CheckOut=None  # Check-out will be set later
-                )
-                db.session.add(new_visitor)
-                db.session.commit()
-                flash(f"Visitor {name} added successfully!", "success")
                 return redirect(url_for("dashboard"))
-            except Exception as e:
-                db.session.rollback()
-                flash(f"Error adding visitor: {str(e)}", "danger")
-        return render_template("create_visitor.html")
+
+                 # Save photo to the upload folder
+            photo_path = None
+            if photo:
+                filename = secure_filename(photo.filename)
+                photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                photo.save(photo_path)
+                # Save relative path for database
+                photo_path = f'static/uploads/{filename}'
+
+                
+                try:
+                    # Create a new VisitorInfo object to add to the database
+                    new_visitor = VisitorInfo(
+                        Name=name,
+                        ContactNumber=contact,
+                        Purpose=purpose,
+                        Address=address,
+                        photo=photo_path,  # Use the correct column name from the model
+                        CreatedBy=created_by,
+                        UpdatedBy=updated_by,
+                        CreatedTime=datetime.now(),
+                        UpdatedTime=datetime.now(),
+                        CheckIn=datetime.now(),
+                        CheckOut=None
+                    )
+                    db.session.add(new_visitor)
+                    db.session.commit()
+                    flash(f"Visitor {name} added successfully!", "success")
+                    return redirect(url_for("dashboard"))
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f"Error adding visitor: {str(e)}", "danger")
+                    return redirect(url_for("dashboard"))
+
+        return render_template("create_visitor.html")                       
 
     #Create View Visitor definition.
     @app.route("/view_visitors", methods=["GET", "POST"])
@@ -356,9 +373,31 @@ def register_routes(app):
             flash(f"Error processing file: {str(e)}", "danger")
             return jsonify({"success": False})
 
-    @app.route("/import_employees")
-    def show_import_form():
-        return render_template("import_employees.html")
+    @app.route("/visitor_id", methods=["GET", "POST"])
+    def visitor_id():
+        visitor = None  # Initialize visitor to None in case no data is passed
+
+        if request.method == "POST":
+            visitor_id = request.form.get("visitor_id")  # Get visitor_id from form
+            app.logger.info(f"Visitor ID received: {visitor_id}")  # Log the ID for debugging
+
+            if visitor_id:
+                visitor = VisitorInfo.query.get(visitor_id)
+                if visitor:
+                    return render_template("visitor_id.html", visitor=visitor)  # Render ID card page
+                else:
+                    flash("Visitor not found.", "danger")
+            else:
+                flash("No visitor selected.", "danger")  # If no ID is provided
+        else:
+            flash("Invalid request method.", "danger")
+            return redirect(url_for('view_visitors'))  # Redirect back to the visitor list page
+
+        return render_template("visitor_id.html", visitor=visitor)  # Ensure visitor is passed here
+
+
+
+
 
 # Run the application
 if __name__ == "__main__":
