@@ -8,10 +8,14 @@ from models.user import UserInfo
 from models.employee import EmployeeInfo
 from models import db  # Ensure correct import
 from models.department import DepartmentInfo
+from models.role import RoleInfo
 import pandas as pd
 from werkzeug.utils import secure_filename
 import os
 from config import Config  # Import your config class
+import bcrypt
+import re
+from utils import hash_password  # Now import from your utils.py
 
 # Flask app factory
 def create_app():
@@ -71,8 +75,9 @@ def register_routes(app):
         if request.method == "POST":
             username = request.form.get("username")
             password = request.form.get("password")
+
             user = UserInfo.query.filter_by(UserID=username).first()
-            if user and user.Password == password:
+            if user and bcrypt.checkpw(password.encode('utf-8'), user.Password.encode('utf-8')):
                 session["username"] = username
                 session["role"] = user.Role_ID
                 flash("Login successful!", "success")
@@ -101,25 +106,57 @@ def register_routes(app):
     @admin_required
     def create_user():
         if request.method == "POST":
-            name = request.form.get("name")
+            fname = request.form.get("fname")
+            lname = request.form.get("lname")
+            dialling_code = request.form.get("dialling_code")
             userid = request.form.get("userid")
             password = request.form.get("password")
+            email = request.form.get("email")
+            phone = request.form.get("phone")
 
-            if not all([name, userid, password]):
+            if not all([fname, userid, password]):
                 flash("All fields are required.", "danger")
                 return redirect(url_for("create_user"))
 
+            # Password validation regex
+            #password_regex = r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$"
+            if not re.match(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$", password):
+                flash("Password must be 8-16 characters long, include at least one letter, one number, and one special character.", "danger")
+                return redirect(url_for("dashboard"))
+
+            # Email format validation using a regex pattern
+            if email is None or not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email):
+                flash("Invalid email format.", "danger")
+                return redirect(url_for("create_user"))
+
+            # Phone number format validation (basic validation for example)
+            if phone is None or not re.match(r"^\+?\d{1,4}[\s-]?\(?\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,4}$", phone):
+                flash("Invalid phone number format.", "danger")
+                return redirect(url_for("create_user"))
+
+            # Check if user already exists (by userid or email)
             if UserInfo.query.filter_by(UserID=userid).first():
-                flash(f"User {userid} already exists!", "danger")
+                flash("User {userid} already exists!", "danger")
+                return redirect(url_for("create_user"))
+            if UserInfo.query.filter_by(email=email).first():
+                flash("Email {email} is already in use.", "danger")
                 return redirect(url_for("create_user"))
 
             createdby = updatedby = session.get("username")
 
             try:
+
+                # Hash the password using bcrypt
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
                 new_user = UserInfo(
-                    Name=name,
+                    firstname=fname,
+                    lastname=lname,
+                    email=email,
+                    phone=phone,
+                    countrycode=dialling_code,
                     UserID=userid,  # Updated to match the model
-                    Password=password,
+                    Password=hashed_password,
                     CreatedBy=createdby,
                     UpdatedBy=updatedby,
                     CreatedTime=datetime.now(),
@@ -129,7 +166,7 @@ def register_routes(app):
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f"User {userid} created successfully!", "success")
-                return redirect(url_for("dashboard"))
+                return redirect(url_for("create_user"))
             except Exception as e:
                 db.session.rollback()
                 flash(f"Error creating user: {str(e)}", "danger")
@@ -139,18 +176,90 @@ def register_routes(app):
     @app.route("/view_users", methods=["GET", "POST"])
     def view_users():
         try:
-           if request.method == "GET":
-            # Fetch all user for display
-            users = UserInfo.query.all()
-            app.logger.info("Users fetched from the database: %s", users)  # Debugging info
+            # Pagination settings
+            page = request.args.get('page', 1, type=int)  # Default to page 1 if no page is specified
+            per_page = 5  # Set how many records you want to show per page
+
+            # Fetch users with pagination
+            users = UserInfo.query.order_by(UserInfo.CreatedBy).paginate(page=page, per_page=per_page, error_out=False) # False for not including query string for pagination
+
+            # Log the paginated users for debugging
+            app.logger.info("Users fetched from the database (paginated): %s", users.items)
+
+            # Render the template with paginated data
+            return render_template("view_users.html", users=users.items, pagination=users)
+
         except Exception as e:
             app.logger.error(f"Error querying Users: {e}")
-            flash("An error occurred while fetching Users.", "danger")
+            flash(f"An error occurred while fetching Users: {str(e)}", "danger")  # Display specific error message
             return redirect(url_for("dashboard"))
 
         users = UserInfo.query.all()
 
         return render_template("view_users.html", users=users)
+
+    # Fetch roles here inside the route
+        roles = RoleInfo.query.all()
+        
+        return render_template("view_users.html", roles=roles)
+
+
+    @app.route("/edit_user/<string:userid>", methods=["GET", "POST"])
+    @admin_required
+    def edit_user(userid):
+        user = UserInfo.query.filter_by(UserID=userid).first()
+        if not user:
+            flash("User not found.", "danger")
+            return redirect(url_for("view_users"))
+
+        if request.method == "POST":
+            role_id = request.form.get("role_id")
+            fname = request.form.get("fname")
+            lname = request.form.get("lname")
+            email = request.form.get("email")
+            phone = request.form.get("phone")
+
+            if not fname:
+                flash("Name is required.", "danger")
+                return redirect(url_for("edit_user", userid=userid))
+
+            try:
+                user.firstname = fname
+                user.lastname = lname
+                user.email = email
+                user.phone = phone
+                user.Role_ID = role_id
+                user.UpdatedBy = session.get("username")
+                user.UpdatedTime = datetime.now()
+
+                db.session.commit()
+                flash(f"User {userid} updated successfully.", "success")
+                return redirect(url_for("view_users"))
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error updating user: {str(e)}", "danger")
+
+        return render_template("edit_user.html", user=user)
+
+
+    @app.route("/delete_user/<string:userid>", methods=["GET", "POST"])
+    @admin_required
+    def delete_user(userid):
+        user = UserInfo.query.filter_by(UserID=userid).first()
+        if not user:
+            flash("User not found.", "danger")
+            return redirect(url_for("view_users"))
+
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            flash(f"User {userid} deleted successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error deleting user: {str(e)}", "danger")
+
+        return redirect(url_for("view_users"))
+
 
     # Create Visitor definition.
     @app.route("/create_visitor", methods=["GET", "POST"])
@@ -203,12 +312,13 @@ def register_routes(app):
                     db.session.add(new_visitor)
                     db.session.commit()
                     flash(f"Visitor {name} added successfully!", "success")
-                    return redirect(url_for("dashboard"))
+                    return redirect(url_for("create_visitor"))
+
                 except Exception as e:
                     db.session.rollback()
                     flash(f"Error adding visitor: {str(e)}", "danger")
                     return redirect(url_for("dashboard"))
-
+        
         return render_template("create_visitor.html")                       
 
     #Create View Visitor definition.
@@ -294,8 +404,7 @@ def register_routes(app):
 
         # Fetch departments here inside the route
         departments = DepartmentInfo.query.all()
-    
-        # Ensure to pass the departments to the template
+        
         return render_template("create_employee.html", departments=departments)
 
 

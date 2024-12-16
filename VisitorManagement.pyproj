@@ -28,6 +28,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="config.py" />
+    <Compile Include="models\role.py" />
     <Compile Include="models\department.py" />
     <Compile Include="models\user.py" />
     <Compile Include="models\employee.py" />
@@ -38,6 +39,7 @@
     <Compile Include="routes\report.py" />
     <Compile Include="routes\visitor.py" />
     <Compile Include="services\db_service.py" />
+    <Compile Include="utils.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
@@ -47,8 +49,9 @@
     <Content Include="templates\create_visitor.html" />
     <Content Include="templates\dashboard.html" />
     <Content Include="templates\login.html" />
-    <Content Include="templates\update_user.html" />
+    <Content Include="templates\edit_user.html" />
     <Content Include="templates\view_employee.html" />
+    <Content Include="templates\view_users.html" />
     <Content Include="templates\visitor_id.html" />
     <Content Include="templates\view_visitors.html" />
   </ItemGroup>

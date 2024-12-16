@@ -8,30 +8,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Display the welcome message -->
+    <!-- Welcome message -->
     {% if username %}
     <h3>Welcome, {{ username }}!</h3>
     {% endif %}
 
-    <h2>Create User</h2>
-    <form method="POST">
-        <label for="userid">UserID:</label>
-        <input type="text" id="userid" name="userid" required><br><br>
-
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required><br><br>
-
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br><br>
-
-        <button type="submit">Create User</button>
-    </form>
-    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
-
-    <!-- Bootstrap Modal for Flash Message -->
+    <!-- Flash Messages Modal -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <!-- Modal Structure -->
     <div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -50,18 +34,320 @@
             </div>
         </div>
     </div>
-    <!-- Modal Trigger Script -->
-    <script type="text/javascript">
-        // Wait for the DOM to be fully loaded before initializing the modal
-        window.onload = function () {
-            var myModal = new bootstrap.Modal(document.getElementById('flashModal'));
-            myModal.show(); // Show the modal when there are messages
-        };
-    </script>
     {% endif %}
     {% endwith %}
 
-    <!-- Include Bootstrap JS (for modal functionality) -->
+    <!-- Create User Form -->
+    <h2>Create User</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="fname" class="form-label">First Name</label>
+            <input type="text" id="fname" name="fname" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="lname" class="form-label">Last Name</label>
+            <input type="text" id="lname" name="lname" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="text" id="email" name="email" class="form-control" required pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
+        </div>
+
+        <div class="mb-3">
+            <label for="CountryCode" class="form-label">Country Code</label>
+            <input type="hidden" id="dialling_code_input" name="dialling_code" value="91">
+            <select class="form-control" id="country_code_rmobile" onchange="changeCountrycode()" name="country_code">
+                <option value="IN" dialling_code="91">India (+91)</option>
+                <option value="AF" dialling_code="93">Afghanistan (+93)</option>
+                <option value="AL" dialling_code="355">Albania (+355)</option>
+                <option value="DZ" dialling_code="213">Algeria (+213)</option>
+                <option value="AS" dialling_code="1">American Samoa (+1)</option>
+                <option value="AD" dialling_code="376">Andorra (+376)</option>
+                <option value="AO" dialling_code="244">Angola (+244)</option>
+                <option value="AI" dialling_code="1">Anguilla (+1)</option>
+                <option value="AG" dialling_code="1">Antigua and Barbuda (+1)</option>
+                <option value="AR" dialling_code="54">Argentina (+54)</option>
+                <option value="AM" dialling_code="374">Armenia (+374)</option>
+                <option value="AW" dialling_code="297">Aruba (+297)</option>
+                <option value="AU" dialling_code="61">Australia (+61)</option>
+                <option value="AT" dialling_code="43">Austria (+43)</option>
+                <option value="AZ" dialling_code="994">Azerbaijan (+994)</option>
+                <option value="BS" dialling_code="1">Bahamas (+1)</option>
+                <option value="BH" dialling_code="973">Bahrain (+973)</option>
+                <option value="BD" dialling_code="880">Bangladesh (+880)</option>
+                <option value="BB" dialling_code="1">Barbados (+1)</option>
+                <option value="BY" dialling_code="375">Belarus (+375)</option>
+                <option value="BE" dialling_code="32">Belgium (+32)</option>
+                <option value="BZ" dialling_code="501">Belize (+501)</option>
+                <option value="BJ" dialling_code="229">Benin (+229)</option>
+                <option value="BM" dialling_code="1">Bermuda (+1)</option>
+                <option value="BT" dialling_code="975">Bhutan (+975)</option>
+                <option value="BO" dialling_code="591">Bolivia (+591)</option>
+                <option value="BA" dialling_code="387">Bosnia and Herzegovina (+387)</option>
+                <option value="BW" dialling_code="267">Botswana (+267)</option>
+                <option value="BR" dialling_code="55">Brazil (+55)</option>
+                <option value="VG" dialling_code="1">British Virgin Islands (+1)</option>
+                <option value="BN" dialling_code="673">Brunei (+673)</option>
+                <option value="BG" dialling_code="359">Bulgaria (+359)</option>
+                <option value="BF" dialling_code="226">Burkina Faso (+226)</option>
+                <option value="BI" dialling_code="257">Burundi (+257)</option>
+                <option value="KH" dialling_code="855">Cambodia (+855)</option>
+                <option value="CM" dialling_code="237">Cameroon (+237)</option>
+                <option value="CA" dialling_code="1">Canada (+1)</option>
+                <option value="CV" dialling_code="238">Cape Verde (+238)</option>
+                <option value="KY" dialling_code="1">Cayman Islands (+1)</option>
+                <option value="CF" dialling_code="236">Central African Republic (+236)</option>
+                <option value="TD" dialling_code="235">Chad (+235)</option>
+                <option value="CL" dialling_code="56">Chile (+56)</option>
+                <option value="CN" dialling_code="86">China (+86)</option>
+                <option value="CO" dialling_code="57">Colombia (+57)</option>
+                <option value="KM" dialling_code="269">Comoros (+269)</option>
+                <option value="CG" dialling_code="242">Congo (+242)</option>
+                <option value="CK" dialling_code="682">Cook Islands (+682)</option>
+                <option value="CR" dialling_code="506">Costa Rica (+506)</option>
+                <option value="HR" dialling_code="385">Croatia (+385)</option>
+                <option value="CU" dialling_code="53">Cuba (+53)</option>
+                <option value="CY" dialling_code="357">Cyprus (+357)</option>
+                <option value="CZ" dialling_code="420">Czech Republic (+420)</option>
+                <option value="CI" dialling_code="225">Côte d'Ivoire (+225)</option>
+                <option value="DK" dialling_code="45">Denmark (+45)</option>
+                <option value="DJ" dialling_code="253">Djibouti (+253)</option>
+                <option value="DM" dialling_code="1">Dominica (+1)</option>
+                <option value="DO" dialling_code="1">Dominican Republic (+1)</option>
+                <option value="EC" dialling_code="593">Ecuador (+593)</option>
+                <option value="EG" dialling_code="20">Egypt (+20)</option>
+                <option value="SV" dialling_code="503">El Salvador (+503)</option>
+                <option value="GQ" dialling_code="240">Equatorial Guinea (+240)</option>
+                <option value="ER" dialling_code="291">Eritrea (+291)</option>
+                <option value="EE" dialling_code="372">Estonia (+372)</option>
+                <option value="ET" dialling_code="251">Ethiopia (+251)</option>
+                <option value="FK" dialling_code="500">Falkland Islands (+500)</option>
+                <option value="FO" dialling_code="298">Faroe Islands (+298)</option>
+                <option value="FJ" dialling_code="679">Fiji (+679)</option>
+                <option value="FI" dialling_code="358">Finland (+358)</option>
+                <option value="FR" dialling_code="33">France (+33)</option>
+                <option value="GF" dialling_code="594">French Guiana (+594)</option>
+                <option value="PF" dialling_code="689">French Polynesia (+689)</option>
+                <option value="GA" dialling_code="241">Gabon (+241)</option>
+                <option value="GM" dialling_code="220">Gambia (+220)</option>
+                <option value="GE" dialling_code="995">Georgia (+995)</option>
+                <option value="DE" dialling_code="49">Germany (+49)</option>
+                <option value="GH" dialling_code="233">Ghana (+233)</option>
+                <option value="GI" dialling_code="350">Gibraltar (+350)</option>
+                <option value="GR" dialling_code="30">Greece (+30)</option>
+                <option value="GL" dialling_code="299">Greenland (+299)</option>
+                <option value="GD" dialling_code="1">Grenada (+1)</option>
+                <option value="GP" dialling_code="590">Guadeloupe (+590)</option>
+                <option value="GU" dialling_code="1">Guam (+1)</option>
+                <option value="GT" dialling_code="502">Guatemala (+502)</option>
+                <option value="GN" dialling_code="224">Guinea (+224)</option>
+                <option value="GW" dialling_code="245">Guinea-Bissau (+245)</option>
+                <option value="GY" dialling_code="592">Guyana (+592)</option>
+                <option value="HT" dialling_code="509">Haiti (+509)</option>
+                <option value="HN" dialling_code="504">Honduras (+504)</option>
+                <option value="HK" dialling_code="852">Hong Kong (+852)</option>
+                <option value="HU" dialling_code="36">Hungary (+36)</option>
+                <option value="IS" dialling_code="354">Iceland (+354)</option>
+                <option value="ID" dialling_code="62">Indonesia (+62)</option>
+                <option value="IR" dialling_code="98">Iran (+98)</option>
+                <option value="IQ" dialling_code="964">Iraq (+964)</option>
+                <option value="IE" dialling_code="353">Ireland (+353)</option>
+                <option value="IL" dialling_code="972">Israel (+972)</option>
+                <option value="IT" dialling_code="39">Italy (+39)</option>
+                <option value="JM" dialling_code="1">Jamaica (+1)</option>
+                <option value="JP" dialling_code="81">Japan (+81)</option>
+                <option value="JO" dialling_code="962">Jordan (+962)</option>
+                <option value="KZ" dialling_code="7">Kazakhstan (+7)</option>
+                <option value="KE" dialling_code="254">Kenya (+254)</option>
+                <option value="KI" dialling_code="686">Kiribati (+686)</option>
+                <option value="XK" dialling_code="383">Kosovo (+383)</option>
+                <option value="KW" dialling_code="965">Kuwait (+965)</option>
+                <option value="KG" dialling_code="996">Kyrgyzstan (+996)</option>
+                <option value="LA" dialling_code="856">Laos (+856)</option>
+                <option value="LV" dialling_code="371">Latvia (+371)</option>
+                <option value="LB" dialling_code="961">Lebanon (+961)</option>
+                <option value="LS" dialling_code="266">Lesotho (+266)</option>
+                <option value="LR" dialling_code="231">Liberia (+231)</option>
+                <option value="LY" dialling_code="218">Libya (+218)</option>
+                <option value="LI" dialling_code="423">Liechtenstein (+423)</option>
+                <option value="LT" dialling_code="370">Lithuania (+370)</option>
+                <option value="LU" dialling_code="352">Luxembourg (+352)</option>
+                <option value="MO" dialling_code="853">Macao (+853)</option>
+                <option value="MK" dialling_code="389">Macedonia (+389)</option>
+                <option value="MG" dialling_code="261">Madagascar (+261)</option>
+                <option value="MW" dialling_code="265">Malawi (+265)</option>
+                <option value="MY" dialling_code="60">Malaysia (+60)</option>
+                <option value="MV" dialling_code="960">Maldives (+960)</option>
+                <option value="ML" dialling_code="223">Mali (+223)</option>
+                <option value="MT" dialling_code="356">Malta (+356)</option>
+                <option value="MH" dialling_code="692">Marshall Islands (+692)</option>
+                <option value="MQ" dialling_code="596">Martinique (+596)</option>
+                <option value="MR" dialling_code="222">Mauritania (+222)</option>
+                <option value="MU" dialling_code="230">Mauritius (+230)</option>
+                <option value="MX" dialling_code="52">Mexico (+52)</option>
+                <option value="FM" dialling_code="691">Micronesia (+691)</option>
+                <option value="MD" dialling_code="373">Moldova (+373)</option>
+                <option value="MC" dialling_code="377">Monaco (+377)</option>
+                <option value="MN" dialling_code="976">Mongolia (+976)</option>
+                <option value="ME" dialling_code="382">Montenegro (+382)</option>
+                <option value="MS" dialling_code="1">Montserrat (+1)</option>
+                <option value="MA" dialling_code="212">Morocco (+212)</option>
+                <option value="MZ" dialling_code="258">Mozambique (+258)</option>
+                <option value="MM" dialling_code="95">Myanmar (+95)</option>
+                <option value="NA" dialling_code="264">Namibia (+264)</option>
+                <option value="NR" dialling_code="674">Nauru (+674)</option>
+                <option value="NP" dialling_code="977">Nepal (+977)</option>
+                <option value="NL" dialling_code="31">Netherlands (+31)</option>
+                <option value="AN" dialling_code="599">Netherlands Antilles (+599)</option>
+                <option value="NC" dialling_code="687">New Caledonia (+687)</option>
+                <option value="NZ" dialling_code="64">New Zealand (+64)</option>
+                <option value="NI" dialling_code="505">Nicaragua (+505)</option>
+                <option value="NE" dialling_code="227">Niger (+227)</option>
+                <option value="NG" dialling_code="234">Nigeria (+234)</option>
+                <option value="NU" dialling_code="683">Niue (+683)</option>
+                <option value="KP" dialling_code="850">North Korea (+850)</option>
+                <option value="MP" dialling_code="1">Northern Mariana Islands (+1)</option>
+                <option value="NO" dialling_code="47">Norway (+47)</option>
+                <option value="OM" dialling_code="968">Oman (+968)</option>
+                <option value="PK" dialling_code="92">Pakistan (+92)</option>
+                <option value="PW" dialling_code="680">Palau (+680)</option>
+                <option value="PS" dialling_code="970">Palestine (+970)</option>
+                <option value="PA" dialling_code="507">Panama (+507)</option>
+                <option value="PG" dialling_code="675">Papua New Guinea (+675)</option>
+                <option value="PY" dialling_code="595">Paraguay (+595)</option>
+                <option value="PE" dialling_code="51">Peru (+51)</option>
+                <option value="PH" dialling_code="63">Philippines (+63)</option>
+                <option value="PL" dialling_code="48">Poland (+48)</option>
+                <option value="PT" dialling_code="351">Portugal (+351)</option>
+                <option value="PR" dialling_code="1">Puerto Rico (+1)</option>
+                <option value="QA" dialling_code="974">Qatar (+974)</option>
+                <option value="RE" dialling_code="262">Reunion (+262)</option>
+                <option value="RO" dialling_code="40">Romania (+40)</option>
+                <option value="RU" dialling_code="7">Russia (+7)</option>
+                <option value="RW" dialling_code="250">Rwanda (+250)</option>
+                <option value="SH" dialling_code="290">Saint Helena (+290)</option>
+                <option value="KN" dialling_code="1">Saint Kitts And Nevis (+1)</option>
+                <option value="LC" dialling_code="1">Saint Lucia (+1)</option>
+                <option value="PM" dialling_code="508">Saint Pierre And Miquelon (+508)</option>
+                <option value="VC" dialling_code="1">Saint Vincent And The Grenadines (+1)</option>
+                <option value="WS" dialling_code="685">Samoa (+685)</option>
+                <option value="SM" dialling_code="378">San Marino (+378)</option>
+                <option value="ST" dialling_code="239">Sao Tome And Principe (+239)</option>
+                <option value="SA" dialling_code="966">Saudi Arabia (+966)</option>
+                <option value="SN" dialling_code="221">Senegal (+221)</option>
+                <option value="RS" dialling_code="381">Serbia (+381)</option>
+                <option value="SC" dialling_code="248">Seychelles (+248)</option>
+                <option value="SL" dialling_code="232">Sierra Leone (+232)</option>
+                <option value="SG" dialling_code="65">Singapore (+65)</option>
+                <option value="SK" dialling_code="421">Slovakia (+421)</option>
+                <option value="SI" dialling_code="386">Slovenia (+386)</option>
+                <option value="SB" dialling_code="677">Solomon Islands (+677)</option>
+                <option value="SO" dialling_code="252">Somalia (+252)</option>
+                <option value="ZA" dialling_code="27">South Africa (+27)</option>
+                <option value="KR" dialling_code="82">South Korea (+82)</option>
+                <option value="ES" dialling_code="34">Spain (+34)</option>
+                <option value="LK" dialling_code="94">Sri Lanka (+94)</option>
+                <option value="SD" dialling_code="249">Sudan (+249)</option>
+                <option value="SR" dialling_code="597">Suriname (+597)</option>
+                <option value="SZ" dialling_code="268">Swaziland (+268)</option>
+                <option value="SE" dialling_code="46">Sweden (+46)</option>
+                <option value="CH" dialling_code="41">Switzerland (+41)</option>
+                <option value="SY" dialling_code="963">Syria (+963)</option>
+                <option value="TW" dialling_code="886">Taiwan (+886)</option>
+                <option value="TJ" dialling_code="992">Tajikistan (+992)</option>
+                <option value="TZ" dialling_code="255">Tanzania (+255)</option>
+                <option value="TH" dialling_code="66">Thailand (+66)</option>
+                <option value="CD" dialling_code="243">The Democratic Republic Of Congo (+243)</option>
+                <option value="TL" dialling_code="670">Timor-Leste (+670)</option>
+                <option value="TG" dialling_code="228">Togo (+228)</option>
+                <option value="TK" dialling_code="690">Tokelau (+690)</option>
+                <option value="TO" dialling_code="676">Tonga (+676)</option>
+                <option value="TT" dialling_code="1">Trinidad and Tobago (+1)</option>
+                <option value="TN" dialling_code="216">Tunisia (+216)</option>
+                <option value="TR" dialling_code="90">Turkey (+90)</option>
+                <option value="TM" dialling_code="993">Turkmenistan (+993)</option>
+                <option value="TC" dialling_code="1">Turks And Caicos Islands (+1)</option>
+                <option value="TV" dialling_code="688">Tuvalu (+688)</option>
+                <option value="VI" dialling_code="1">U.S. Virgin Islands (+1)</option>
+                <option value="UG" dialling_code="256">Uganda (+256)</option>
+                <option value="UA" dialling_code="380">Ukraine (+380)</option>
+                <option value="AE" dialling_code="971">United Arab Emirates (+971)</option>
+                <option value="GB" dialling_code="44">United Kingdom (+44)</option>
+                <option value="US" dialling_code="1">United States (+1)</option>
+                <option value="UY" dialling_code="598">Uruguay (+598)</option>
+                <option value="UZ" dialling_code="998">Uzbekistan (+998)</option>
+                <option value="VU" dialling_code="678">Vanuatu (+678)</option>
+                <option value="VA" dialling_code="379">Vatican (+379)</option>
+                <option value="VE" dialling_code="58">Venezuela (+58)</option>
+                <option value="VN" dialling_code="84">Vietnam (+84)</option>
+                <option value="WF" dialling_code="681">Wallis And Futuna (+681)</option>
+                <option value="YE" dialling_code="967">Yemen (+967)</option>
+                <option value="ZM" dialling_code="260">Zambia (+260)</option>
+                <option value="ZW" dialling_code="263">Zimbabwe (+263)</option>
+                <option value="AX" dialling_code="672">Åland Islands (+672)</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone</label>
+            <input type="number" id="phone" name="phone" class="form-control" required pattern="^\+?\d{1,4}[\s-]?\(?\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,4}$">
+        </div>
+
+        <div class="mb-3">
+            <label for="userid" class="form-label">UserID</label>
+            <input type="text" id="userid" name="userid" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-control">Password</label>
+            <input type="password" id="password" name="password" class="form-control" pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$" 
+        title="Password must be 8-16 characters long, include at least one letter, one number, and one special character." 
+        required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create User</button>
+    </form>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+
+    <script>
+        // Function to update the hidden input with the selected dialling code
+        function changeCountrycode() {
+            var selectedOption = document.getElementById("country_code_rmobile").selectedOptions[0];
+            var diallingCode = selectedOption.getAttribute("dialling_code");
+
+            console.log("Selected Dialling Code:", diallingCode); // Debugging log
+            document.getElementById("dialling_code_input").value = diallingCode;
+        }
+
+        // Initialize the hidden input on page load with the default value
+        window.onload = function () {
+            changeCountrycode(); // Call to set the default dialling code
+        };
+    </script>
+
+    <!-- Include Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Show the flash message modal if it exists
+            var flashModal = document.getElementById('flashModal');
+            if (flashModal) {
+                var modalInstance = new bootstrap.Modal(flashModal);
+                modalInstance.show();
+
+                // Clear flash messages after the modal is closed
+                flashModal.addEventListener('hidden.bs.modal', function () {
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        headers: { 'Clear-Messages': 'true' },
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>
