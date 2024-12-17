@@ -271,6 +271,7 @@ def register_routes(app):
         if request.method == "POST":
             name = request.form.get("name")
             contact = request.form.get("contact")
+            empno = request.form.get("empno")  # Ensure you are getting the empno value
             purpose = request.form.get("purpose")
             address = request.form.get("address")
             photo = request.files.get("photo")
@@ -300,6 +301,7 @@ def register_routes(app):
                         Name=name,
                         ContactNumber=contact,
                         Purpose=purpose,
+                        empno=empno,
                         Address=address,
                         photo=photo_path,  # Use the correct column name from the model
                         CreatedBy=created_by,
@@ -319,52 +321,128 @@ def register_routes(app):
                     flash(f"Error adding visitor: {str(e)}", "danger")
                     return redirect(url_for("dashboard"))
         
-        return render_template("create_visitor.html")                       
+        # Fetch departments here inside the route
+        employees = EmployeeInfo.query.all()
+
+        return render_template("create_visitor.html", employees=employees)                       
 
     #Create View Visitor definition.
     @app.route("/view_visitors", methods=["GET", "POST"])
     def view_visitors():
-        visitors = []
         try:
-           if request.method == "GET":
-            # Fetch all visitors for display
-            visitors = VisitorInfo.query.all()
-            app.logger.info("Visitors fetched from the database: %s", visitors)  # Debugging info
+            # Pagination settings
+            page = request.args.get('page', 1, type=int)  # Default to page 1 if no page is specified
+            per_page = 5  # Set how many records you want to show per page
+
+            # Fetch users with pagination
+            visitors_pag = VisitorInfo.query.order_by(VisitorInfo.CreatedTime).paginate(page=page, per_page=per_page, error_out=False)
+
+            # Log the paginated users for debugging
+            app.logger.info("Visitors fetched from the database (paginated): %s", visitors_pag.items)
+
+            # Handle POST request for visitor checkout
+            if request.method == "POST":
+                visitor_id = request.form.get("ID")
+                app.logger.info("Visitor ID from the form: %s", visitor_id)
+
+                if visitor_id:
+                    try:
+                        # Fetch the specific visitor
+                        visitor = VisitorInfo.query.get(visitor_id)
+                        app.logger.info("Visitor object fetched: %s", visitor)
+
+                        if visitor and not visitor.CheckOut:
+                            # Update check-out time and updater information
+                            visitor.CheckOut = datetime.utcnow()
+                            visitor.UpdatedBy = session.get("username")
+                            db.session.commit()
+                            flash(f"Visitor {visitor.Name} checked out successfully!", "success")
+                        else:
+                            flash("Visitor not found or already checked out.", "warning")
+                    except Exception as e:
+                        db.session.rollback()
+                        app.logger.error(f"Error during visitor checkout: {e}")
+                        flash(f"Error during checkout: {e}", "danger")
+                else:
+                    flash("Invalid Visitor ID.", "danger")
+
+            # Render the template with paginated data
+            return render_template("view_visitors.html", visitors=visitors_pag.items, pagination=visitors_pag)
+
         except Exception as e:
             app.logger.error(f"Error querying visitors: {e}")
-            flash("An error occurred while fetching visitors.", "danger")
+            flash(f"An error occurred while fetching visitors: {str(e)}", "danger")  # Display specific error message
             return redirect(url_for("dashboard"))
 
+    @app.route("/edit_visitor/<string:userid>", methods=["GET", "POST"])
+    def edit_visitor(userid):
+        visitor = VisitorInfo.query.filter_by(ID=userid).first()
+        if not visitor:
+            flash("Visitor not found.", "danger")
+            return redirect(url_for("view_visitors"))
+    
+        # Get all employees from the Employee table
+        employees = EmployeeInfo.query.all()
+
         if request.method == "POST":
-            # Get the visitor ID from the form
-            visitor_id = request.form.get("ID")
-            app.logger.info("Visitor ID from the form: %s", visitor_id)  # Debugging info
+            name = request.form.get("name")
+            contact = request.form.get("contact")
+            empno = request.form.get("empno")
+            purpose = request.form.get("purpose")
+            address = request.form.get("address")
+        
+            # Initialize 'photo' variable
+            photo = request.files.get("photo")
 
-            if visitor_id:
-                try:
-                    # Fetch the specific visitor
-                    visitor = VisitorInfo.query.get(visitor_id)
-                    app.logger.info("Visitor object fetched: %s", visitor)  # Debugging info
+            # Handle the photo upload if a new photo is provided
+            if photo and allowed_file(photo.filename):
+                filename = secure_filename(photo.filename)
+                photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                photo.save(photo_path)
+                visitor.photo = filename  # Store the filename (not the FileStorage object)
 
-                    if visitor and not visitor.CheckOut:
-                        # Update check-out time and updater information
-                        visitor.CheckOut = datetime.utcnow()
-                        visitor.UpdatedBy = session.get("username")
-                        db.session.commit()
-                        flash(f"Visitor {visitor.Name} checked out successfully!", "success")
-                    else:
-                        flash("Visitor not found or already checked out.", "warning")
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.error(f"Error during visitor checkout: {e}")
-                    flash(f"Error during checkout: {e}", "danger")
-            else:
-                flash("Invalid Visitor ID.", "danger")
+            if not name:
+                flash("Name is required.", "danger")
+                return redirect(url_for("edit_visitor", userid=userid))
 
-                # Re-fetch the visitors after the checkout operation
-        visitors = VisitorInfo.query.all()
+            try:
+                # Update visitor details
+                visitor.Name = name
+                visitor.ContactNumber = contact
+                visitor.empno = empno
+                visitor.Purpose = purpose
+                visitor.Address = address
+                # The photo is already updated earlier if a new photo was uploaded
+                visitor.UpdatedBy = session.get("username")
+                visitor.UpdatedTime = datetime.now()
 
-        return render_template("view_visitors.html", visitors=visitors)
+                db.session.commit()
+                flash(f"Visitor {name} updated successfully.", "success")
+                return redirect(url_for("view_visitors"))
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error updating visitor: {str(e)}", "danger")
+
+        return render_template("edit_visitor.html", visitor=visitor, employees=employees)
+
+
+    @app.route("/delete_visitor/<string:userid>", methods=["GET", "POST"])
+    def delete_visitor(userid):
+
+        visitor = VisitorInfo.query.filter_by(ID=userid).first()
+        if not visitor:
+            flash("visitor not found.", "danger")
+            return redirect(url_for("view_visitors"))
+
+        try:
+            db.session.delete(visitor)
+            db.session.commit()
+            flash(f"visitor {visitor.Name} deleted successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error deleting user: {str(e)}", "danger")
+
+        return redirect(url_for("view_visitors"))
 
     # Create Employee definition.
     @app.route("/create_employee", methods=["GET", "POST"])
@@ -412,20 +490,27 @@ def register_routes(app):
     @app.route("/view_employee", methods=["GET", "POST"])
     def view_employees():
         try:
-           if request.method == "GET":
-            # Fetch all Employee for display
-            employees = EmployeeInfo.query.all()
-            app.logger.info("Employees fetched from the database: %s", employees)  # Debugging info
+            # Pagination settings
+            page = request.args.get('page', 1, type=int)  # Default to page 1 if no page is specified
+            per_page = 5  # Set how many records you want to show per page
+
+            # Fetch employees with pagination
+            employees_pag = EmployeeInfo.query.order_by(EmployeeInfo.ID).paginate(page=page, per_page=per_page, error_out=False)
+
+            app.logger.info("Employees fetched from the database (paginated): %s", employees_pag.items)  # Debugging info
+
+            # Handle POST request for any form processing (if needed)
+            if request.method == "POST":
+                employees = EmployeeInfo.query.all()
+
+            # Render the template with paginated data
+            return render_template("view_employee.html", employees=employees_pag.items, pagination=employees_pag)
+
         except Exception as e:
-            app.logger.error(f"Error querying visitors: {e}")
-            flash("An error occurred while fetching employees.", "danger")
+            app.logger.error(f"Error querying employees: {e}")
+            flash(f"An error occurred while fetching employees: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
-
-                # Re-fetch the visitors after the checkout operation
-        employees = EmployeeInfo.query.all()
-
-        return render_template("view_employee.html", employees=employees)
-
+        
     @app.route("/import_employees", methods=["POST"])
     def import_employees():
         file = request.files['file']
