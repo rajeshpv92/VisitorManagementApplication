@@ -3,32 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Employees</title>
+    <title>Import Employees</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+    <div class="container">
+        <h3>Upload and Import Employees</h3>
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="file" class="form-label">Upload File</label>
+                <input type="file" class="form-control" id="file" name="file" accept=".xlsx, .xls" required>
+            </div>
+            <button type="button" id="preview-btn" class="btn btn-primary">Preview Data</button>
+        </form>
 
-    <h3>Upload Employees</h3>
-    <form id="upload-form" method="POST" enctype="multipart/form-data">
-        <div class="mb-3">
-            <label for="file" class="form-label">Upload File</label>
-            <input type="file" class="form-control" id="file" name="file" accept=".xlsx, .xls" required>
+        <!-- Preview Data Section -->
+        <div id="file-preview" style="display:none;">
+            <h4>Preview Data</h4>
+            <table class="table">
+                <thead id="table-header"></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+            <button id="proceed-to-mapping-btn" class="btn btn-success">Proceed to Import</button>
         </div>
-        <button type="button" id="preview-btn" class="btn btn-primary">Preview File</button>
-    </form>
 
-    <div id="file-preview" style="display:none;">
-        <h4>Preview Data</h4>
-        <table class="table">
-            <thead id="table-header"></thead>
-            <tbody id="table-body"></tbody>
-        </table>
-        <form id="column-mapping-form"></form>
-        <button id="proceed-btn" class="btn btn-success" style="display:none;">Proceed with Import</button>
+        <!-- Column Mapping Section -->
+        <div id="column-mapping-section" style="display:none;">
+            <h4>Map Columns</h4>
+            <form id="mapping-form">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Employee Columns</th>
+                            <th>Input File Columns</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>EMPNO</td>
+                            <td>
+                                <select name="EMPNO" class="form-control input-column-dropdown"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>EMPNAME</td>
+                            <td>
+                                <select name="EMPNAME" class="form-control input-column-dropdown"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>MobileNo</td>
+                            <td>
+                                <select name="MobileNo" class="form-control input-column-dropdown"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DEPTNO</td>
+                            <td>
+                                <select name="DEPTNO" class="form-control input-column-dropdown"></select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" id="import-btn" class="btn btn-primary">Import Employees</button>
+            </form>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
+        let previewData = [];
+        let inputColumns = [];
+
+        // Preview Data
         document.getElementById('preview-btn').addEventListener('click', function () {
             const fileInput = document.getElementById('file');
             const file = fileInput.files[0];
@@ -39,95 +86,105 @@
             }
 
             const reader = new FileReader();
-
             reader.onload = function (e) {
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const sheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                previewData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                // Display preview table
+                // Populate table headers
                 const tableHeader = document.getElementById('table-header');
                 const tableBody = document.getElementById('table-body');
-                const columnMappingForm = document.getElementById('column-mapping-form');
-                const proceedButton = document.getElementById('proceed-btn');
-
-                // Clear previous preview
                 tableHeader.innerHTML = '';
                 tableBody.innerHTML = '';
-                columnMappingForm.innerHTML = '';
 
-                // Render header
-                const headerRow = jsonData[0];
-                headerRow.forEach(col => {
-                    const th = document.createElement('th');
-                    th.textContent = col;
-                    tableHeader.appendChild(th);
+                const headerRow = previewData[0];
+                inputColumns = headerRow;
+                const headerHTML = headerRow.map(col => `<th>${col}</th>`).join('');
+                tableHeader.innerHTML = `<tr>${headerHTML}</tr>`;
 
-                    const input = document.createElement('select');
-                    input.classList.add('form-control');
-                    input.name = col;
-                    input.innerHTML = `
-                    <option value="EMPNO">EMPNO</option>
-                    <option value="EMPNAME">EMPNAME</option>
-                    <option value="MobileNo">MobileNo</option>
-                    <option value="DEPTNO">DEPTNO</option>
-                `;
-                    columnMappingForm.appendChild(input);
-                });
-
-                // Render data rows
-                jsonData.slice(1).forEach((row) => {
+                // Populate table rows (first 5 rows only)
+                previewData.slice(1, 6).forEach(row => {
+                    const rowHTML = row.map(cell => `<td>${cell || ''}</td>`).join('');
                     const tr = document.createElement('tr');
-                    row.forEach(cell => {
-                        const td = document.createElement('td');
-                        td.textContent = cell;
-                        tr.appendChild(td);
-                    });
+                    tr.innerHTML = rowHTML;
                     tableBody.appendChild(tr);
                 });
 
-                // Show the preview and proceed button
                 document.getElementById('file-preview').style.display = 'block';
-                proceedButton.style.display = 'inline-block';
-
-                // Store the preview data (for later use when submitting the form)
-                window.previewData = jsonData;
             };
 
             reader.readAsBinaryString(file);
         });
 
-        // Handle the Proceed button click to submit the form
-        document.getElementById('proceed-btn').addEventListener('click', function () {
-            // Grab selected column mappings
-            const mappings = {};
-            const selects = document.querySelectorAll('#column-mapping-form select');
-            selects.forEach(select => {
-                const colName = select.name;
-                const mappedColumn = select.value;
-                mappings[colName] = mappedColumn;
+        // Proceed to Mapping
+        document.getElementById('proceed-to-mapping-btn').addEventListener('click', function () {
+            const dropdowns = document.querySelectorAll('.input-column-dropdown');
+
+            // Populate dropdowns with input file columns
+            dropdowns.forEach(dropdown => {
+                dropdown.innerHTML = '<option value="">Select Column</option>';
+                inputColumns.forEach(col => {
+                    const option = document.createElement('option');
+                    option.value = col;
+                    option.textContent = col;
+                    dropdown.appendChild(option);
+                });
             });
 
-            // Prepare the data for sending to the backend (along with the file)
+            document.getElementById('file-preview').style.display = 'none';
+            document.getElementById('column-mapping-section').style.display = 'block';
+        });
+
+        // Import Data
+        document.getElementById('import-btn').addEventListener('click', function () {
+            const mappings = {};
+            const dropdowns = document.querySelectorAll('.input-column-dropdown');
+            dropdowns.forEach(dropdown => {
+                const name = dropdown.name;
+                const value = dropdown.value;
+                if (value) mappings[name] = value;
+            });
+
+            if (Object.keys(mappings).length < 4) {
+                alert("Please map all required columns.");
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', document.getElementById('file').files[0]);
-            formData.append('mappings', JSON.stringify(mappings));  // Send mappings as JSON
+            formData.append('mappings', JSON.stringify(mappings));
 
-            // Create an XMLHttpRequest to submit the form data
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/import_employees', true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    alert('File imported successfully!');
-                } else {
-                    alert('Error importing file.');
-                }
-            };
-            xhr.send(formData);
+            fetch('/import_employees', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        return response.json(); // Parse JSON only if content type is correct
+                    } else {
+                        throw new Error("Server returned an unexpected response format.");
+                    }
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert("Employees imported successfully!");
+                        window.location.reload();
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("Error importing employees: " + error.message);
+                });
+
         });
     </script>
-
 </body>
 </html>

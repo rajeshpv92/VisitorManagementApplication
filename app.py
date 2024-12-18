@@ -3,6 +3,8 @@ import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import datetime
 import logging
+
+from numpy import append
 from models.visitor import VisitorInfo  # Ensure correct import
 from models.user import UserInfo
 from models.employee import EmployeeInfo
@@ -511,34 +513,119 @@ def register_routes(app):
             flash(f"An error occurred while fetching employees: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
         
-    @app.route("/import_employees", methods=["POST"])
+    @app.route("/edit_employee/<string:userid>", methods=["GET", "POST"])
+    def edit_employee(userid):
+        # Fetch the employee by ID
+        employee = EmployeeInfo.query.filter_by(ID=userid).first()
+        if not employee:
+            flash("Employee not found.", "danger")
+            return redirect(url_for("view_employees"))
+
+        # Fetch all departments for the dropdown
+        departments = DepartmentInfo.query.all()
+
+        if request.method == "POST":
+            try:
+                # Get form data
+                empno = request.form.get("empno")
+                empname = request.form.get("empname")
+                mobileno = request.form.get("mobileno")
+                deptno = request.form.get("Deptno")
+                updated_by = session.get("username")
+
+                # Validate mandatory fields
+                if not empname:
+                    flash("Employee name is required.", "danger")
+                    return redirect(url_for("edit_employee", userid=userid))
+
+                # Update the employee record
+                employee.EMPNO = empno
+                employee.EMPNAME = empname
+                employee.MobileNo = mobileno
+                employee.DEPTNO = deptno
+                employee.UpdatedBy = updated_by
+                employee.UpdatedTime = datetime.now()
+
+                
+                db.session.commit()
+                flash(f"Employee {empname} updated successfully.", "success")
+                return redirect(url_for("view_employees"))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error updating employee: {str(e)}", "danger")
+
+        return render_template("edit_employee.html", employee=employee, departments=departments)
+
+
+    @app.route("/delete_employee/<string:userid>", methods=["GET", "POST"])
+    def delete_employee(userid):
+
+        employee = EmployeeInfo.query.filter_by(ID=userid).first()
+        if not employee:
+            flash("employee not found.", "danger")
+            return redirect(url_for("view_employees"))
+
+        try:
+            db.session.delete(employee)
+            db.session.commit()
+            flash(f"visitor {employee.EMPNAME} deleted successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error deleting user: {str(e)}", "danger")
+
+        return redirect(url_for("view_employees"))
+
+    @app.route("/import_employees", methods=["GET", "POST"])
     def import_employees():
-        file = request.files['file']
-        mappings = request.form.get('mappings')
+
+        file = request.files.get('file')  # Get the file from the form
+        mappings = request.form.get('mappings')  # Get mappings from the form (if applicable)
+
+        if request.method == "GET":
+            return render_template("import_employees.html")
+
+            file = request.files.get('file')
+            mappings = request.form.get('mappings')
 
         if not file or not mappings:
             flash("Invalid file or column mappings.", "danger")
             return redirect(url_for("import_employees"))
 
-        mappings = json.loads(mappings)
-    
+        try:
+            mappings = json.loads(mappings)
+        except json.JSONDecodeError:
+            flash("Invalid column mappings format.", "danger")
+            return redirect(url_for("import_employees"))
+
         # Save file temporarily
         filename = secure_filename(file.filename)
-        file_path = os.path.join("uploads", filename)
+        uploads_dir = "uploads"
+        os.makedirs(uploads_dir, exist_ok=True)
+        file_path = os.path.join(uploads_dir, filename)
         file.save(file_path)
 
         # Read the Excel file using pandas
         try:
             data = pd.read_excel(file_path)
-        
-            for index, row in data.iterrows():
-                empno = row[mappings.get("EMPNO")]
+        except Exception as e:
+            flash(f"Error reading Excel file: {str(e)}", "danger")
+            return redirect(url_for("import_employees"))
+
+        # Process rows
+        row_count = 0
+        errors = []
+
+        for index, row in data.iterrows():
+            try:
+                empno = int(row[mappings.get("EMPNO")])
                 empname = row[mappings.get("EMPNAME")]
-                mobileno = row[mappings.get("MobileNo")]
+                mobileno = int(row[mappings.get("MobileNo")])
                 deptno = row[mappings.get("DEPTNO")]
 
-                if not empno or not empname or not mobileno or not deptno:
-                    flash(f"Missing data in row {index + 1}", "danger")
+                
+                if not all([empno, empname, mobileno, deptno]):
+                    errors.append(f"Missing data in row {index + 1}")
                     continue
 
                 # Create the Employee record
@@ -547,25 +634,37 @@ def register_routes(app):
                     EMPNAME=empname,
                     MobileNo=mobileno,
                     DEPTNO=deptno,
-                    CreatedBy='admin',  # Set user if needed
-                    UpdatedBy='admin',  # Set user if needed
+                    CreatedBy='admin',  # Replace with the logged-in user
+                    UpdatedBy='admin',  # Replace with the logged-in user
                     CreatedTime=datetime.now(),
                     UpdatedTime=datetime.now()
                 )
 
-                try:
-                    db.session.add(new_employee)
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    flash(f"Error adding employee {empname}: {str(e)}", "danger")
+                db.session.add(new_employee)
+                row_count += 1
 
-            flash("Employees imported successfully!", "success")
-            return jsonify({"success": True})
+            except (ValueError, TypeError):
+                db.session.rollback()
+                errors.append(f"Invalid dataype in row {index + 1}: {str(e)}")
 
+        try:
+            db.session.commit()
+            return jsonify({"success": True, "message": "Employees imported successfully!"}), 200
         except Exception as e:
-            flash(f"Error processing file: {str(e)}", "danger")
-            return jsonify({"success": False})
+            db.session.rollback()
+            print("Error:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+        # Cleanup temporary file
+        os.remove(file_path)
+
+        # Display errors if any
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+
+        return redirect(url_for("import_employees"))
+
 
     @app.route("/visitor_id", methods=["GET", "POST"])
     def visitor_id():

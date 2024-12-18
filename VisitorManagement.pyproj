@@ -49,6 +49,7 @@
     <Content Include="templates\create_visitor.html" />
     <Content Include="templates\dashboard.html" />
     <Content Include="templates\edit_visitor.html" />
+    <Content Include="templates\import_employees.html" />
     <Content Include="templates\login.html" />
     <Content Include="templates\edit_user.html" />
     <Content Include="templates\view_employee.html" />
