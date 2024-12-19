@@ -43,16 +43,20 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
+    <Content Include="static\js\charts.js" />
     <Content Include="static\style.css" />
     <Content Include="templates\create_user.html" />
     <Content Include="templates\create_employee.html" />
     <Content Include="templates\create_visitor.html" />
+    <Content Include="templates\monthly_visitors.html" />
+    <Content Include="templates\daily_visitors.html" />
     <Content Include="templates\dashboard.html" />
     <Content Include="templates\edit_visitor.html" />
     <Content Include="templates\import_employees.html" />
     <Content Include="templates\login.html" />
     <Content Include="templates\edit_user.html" />
     <Content Include="templates\view_employee.html" />
+    <Content Include="templates\view_reports.html" />
     <Content Include="templates\view_users.html" />
     <Content Include="templates\visitor_id.html" />
     <Content Include="templates\view_visitors.html" />
@@ -62,6 +66,7 @@
     <Folder Include="migrations\" />
     <Folder Include="services\" />
     <Folder Include="routes\" />
+    <Folder Include="static\js\" />
     <Folder Include="templates\" />
     <Folder Include="static\" />
   </ItemGroup>

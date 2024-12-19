@@ -8,6 +8,7 @@ class VisitorInfo(db.Model):
     ID = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(255), nullable=False)  # Visitor's name
     ContactNumber = db.Column(db.String(20), nullable=False)  # Contact number
+    visit_date = db.Column(db.String(255), nullable=False)
     Purpose = db.Column(db.String(255), nullable=False)  # Purpose of visit
     Address = db.Column(db.String(255), nullable=True)  # Address (optional)
     photo = db.Column(db.String(255), nullable=True)  # Path to uploaded photo

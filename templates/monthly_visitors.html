@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Visitors</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Basic layout for two columns */
+        .container {
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+            margin: 20px;
+        }
+
+        .list-container {
+            flex: 0 0 60%; /* Fixed to 60% of the container's width */
+            border: 1px solid #ddd;
+            padding: 15px;
+            box-sizing: border-box; /* Ensures padding does not affect overall width */
+            height: 400px; /* Fixed height for the table */
+            overflow-y: auto; /* Enables vertical scrolling if content exceeds the height */
+        }
+
+        .chart-container {
+            flex: 0 0 35%; /* Fixed to 35% of the container's width */
+            padding: 15px;
+            max-width: 400px;
+            box-sizing: border-box; /* Ensures padding does not affect overall width */
+            height: 500px; /* Increased height for the chart */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Monthly Visitors</h1>
+
+    <div class="container">
+        <!-- List of visitors -->
+        <div class="list-container">
+            <h2>Visitor Details</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee No</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Purpose</th>
+                        <th>Visit Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visitor in visitor_list[:5] %}  <!-- Only show first 5 records -->
+                    <tr>
+                        <td>{{ visitor.empno }}</td>
+                        <td>{{ visitor.Name }}</td>
+                        <td>{{ visitor.ContactNumber }}</td>
+                        <td>{{ visitor.Purpose }}</td>
+                        <td>{{ visitor.visit_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-container">
+            <canvas id="visitorChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Data passed from Flask (the `dates` and `visitors` variables from Flask backend)
+        const months = {{ dates | tojson }};  // Last 10 months (e.g., ['Jan 2024', 'Feb 2024', 'Mar 2024'])
+        const visitors = {{ visitors | tojson }};  // Visitor counts for each month
+
+        // Create the chart
+        const ctx = document.getElementById('visitorChart').getContext('2d');
+        const visitorChart = new Chart(ctx, {
+            type: 'line',  // You can change the chart type (e.g., 'bar', 'line')
+            data: {
+                labels: months,  // X-axis labels (months)
+                datasets: [{
+                    label: 'Visitor Count',
+                    data: visitors,  // Y-axis data (visitor counts per month)
+                    borderColor: 'rgba(75, 192, 192, 1)',  // Line color
+                    fill: false  // If you want a filled area under the line, set it to true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItem) {
+                                return `Month: ${tooltipItem[0].label}`;  // Custom tooltip title
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Visitor Count'
+                        },
+                        beginAtZero: false  // Start Y-axis at zero
+                    }
+                }
+            }
+        });
+    </script>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+</body>
+</html>

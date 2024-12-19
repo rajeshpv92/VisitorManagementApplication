@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>View Reports</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Commonly used modern font */
@@ -112,55 +112,37 @@
     </style>
 </head>
 <body>
-    <h2>  Visitor Management</h2>
+    <h2>View Reports</h2>
     <div class="header">
-        <div class="logo">BRUNO</div>
         <ul class="nav">
             <li class="dropdown">
-                <a href="javascript:void(0)" class="dropbtn">User</a>
+                <a href="javascript:void(0)" class="dropbtn">Visitor Report</a>
                 <div class="dropdown-content">
-                    {% if session['role'] == 1 %}
-                    <a href="{{ url_for('create_user') }}">Create User</a>
-                    <a href="{{ url_for('view_users') }}">View User</a>
-                    {% endif %}
-                </div>
-            </li>
-            <li class="dropdown">
-                <a href="javascript:void(0)" class="dropbtn">Employee</a>
-                <div class="dropdown-content">
-                    <a href="{{ url_for('create_employee') }}">Create Employee</a>
-                    <a href="{{ url_for('view_employees') }}">View Employee</a>
-                    <a href="{{ url_for('import_employees') }}">Import Employees</a>
+                    <a href="{{ url_for('view_reports.daily_visitors') }}">Daily Visitors Report</a>
+                    <a href="{{ url_for('view_reports.monthly_visitors') }}">Monthly Visitors Report</a>
                 </div>
             </li>
             <li class="dropdown">
                 <a href="javascript:void(0)" class="dropbtn">Visitor</a>
                 <div class="dropdown-content">
-                    <a href="{{ url_for('create_visitor') }}">Add Visitor</a>
-                    <a href="{{ url_for('view_visitors') }}">View Visitor</a>
+                    <a href="{{ url_for('view_reports.monthly_visitors') }}">Monthly Visitors Report</a>
                 </div>
             </li>
             <li class="dropdown">
                 <a href="javascript:void(0)" class="dropbtn">Reports</a>
                 <div class="dropdown-content">
-                    <a href="{{ url_for('view_visitors') }}">Generate Report</a>
-                    <a href="{{ url_for('view_reports.view_reports_home') }}" class="view-dropbtn">View Reports</a>
-
-                    <!-- Sub-menu under View Reports -->
-                    <div class="sub-menu">
-                        <a href="#">Sub Report 1</a>
-                        <a href="#">Sub Report 2</a>
-                        <a href="#">Sub Report 3</a>
-                    </div>
+                    <a href="{{ url_for('view_reports.department_visitors') }}">Department Visitors Report</a>
+                </div>
+            </li>
+            <li class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn">Reports</a>
+                <div class="dropdown-content">
+                    <a href="{{ url_for('view_reports.employee_visitors') }}">Employee Visitors Report</a>
                 </div>
             </li>
         </ul>
-        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
     </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 
-    <div class="container">
-        <h2>Welcome to the Dashboard</h2>
-        <p>Hello, {{ session['username'] }}! You are logged in as {% if session['role'] == 1 %}Admin{% else %}User{% endif %}.</p>
-    </div>
 </body>
 </html>

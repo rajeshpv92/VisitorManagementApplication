@@ -115,6 +115,7 @@
                         <th>Contact</th>
                         <th>Employee</th>
                         <th>Purpose</th>
+                        <th>Visit Date</th>
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Actions</th>
@@ -135,6 +136,7 @@
                         <td>{{ visitor.ContactNumber }}</td>
                         <td>{{ visitor.employee.EMPNAME }}</td>
                         <td>{{ visitor.Purpose }}</td>
+                        <td>{{ visitor.visit_date }}</td>
                         <td>{{ visitor.CheckIn.strftime('%Y-%m-%d %H:%M:%S') if visitor.CheckIn else 'N/A' }}</td>
                         <td>
                             {% if not visitor.CheckOut %}

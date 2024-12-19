@@ -1,6 +1,6 @@
 from functools import wraps
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Blueprint
 from datetime import datetime
 import logging
 
@@ -18,6 +18,15 @@ from config import Config  # Import your config class
 import bcrypt
 import re
 from utils import hash_password  # Now import from your utils.py
+
+
+# Define the Blueprint
+view_reports = Blueprint('view_reports', __name__, url_prefix='/view_reports')
+    
+# Define a route for the main /view_reports page
+@view_reports.route('/')
+def view_reports_home():
+    return render_template('view_reports.html')
 
 # Flask app factory
 def create_app():
@@ -43,6 +52,8 @@ def create_app():
     # Load configuration from config.py
     app.config.from_object(Config)
 
+    app.register_blueprint(view_reports)
+
     with app.app_context():
         db.create_all()  # Ensure tables are created
 
@@ -55,6 +66,8 @@ def setup_logging(app):
     formatter = logging.Formatter("[%(asctime)s] %(levelname)s in %(module)s: %(message)s")
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
+
+
 
 # Admin access control decorator
 def admin_required(f):
@@ -277,15 +290,13 @@ def register_routes(app):
             purpose = request.form.get("purpose")
             address = request.form.get("address")
             photo = request.files.get("photo")
+            visitdate = request.form.get("visit_date")
             created_by = updated_by = session.get("username")
 
-            # Debugging: print form data to see if it's being received correctly
-            print("Form Data - Name:", name, "Contact:", contact, "Purpose:", purpose)
-
             # Validation: check if all required fields are provided
-            if not name or not contact or not purpose:
+            if not name or not contact or not purpose or not visitdate:
                 flash("All fields are required.", "danger")
-                return redirect(url_for("dashboard"))
+                return redirect(url_for("create_visitor"))
 
                  # Save photo to the upload folder
             photo_path = None
@@ -304,6 +315,7 @@ def register_routes(app):
                         ContactNumber=contact,
                         Purpose=purpose,
                         empno=empno,
+                        visit_date=visitdate,
                         Address=address,
                         photo=photo_path,  # Use the correct column name from the model
                         CreatedBy=created_by,
@@ -689,7 +701,103 @@ def register_routes(app):
         return render_template("visitor_id.html", visitor=visitor)  # Ensure visitor is passed here
 
 
+    @view_reports.route('/api/visitors/daily', methods=['GET'])
+    def daily_visitors():
+        # Connect to the database
+        conn = db.engine.connect()
 
+        # Query to get daily visitor statistics
+        query = """
+            SELECT 
+                CONVERT(DATE, visit_date) AS VisitDate, 
+                COUNT(*) AS VisitorCount
+            FROM 
+                Visitor
+            WHERE 
+                CONVERT(DATE, visit_date) >= DATEADD(DAY, -30, GETDATE())  -- Last 30 days
+            GROUP BY 
+                CONVERT(DATE, visit_date)
+            ORDER BY 
+                VisitDate;
+        """
+        data = pd.read_sql(query, conn)
+
+        # Query to get detailed visitor data (visitor names, times, etc.)
+        detailed_query = """
+            SELECT empno, Name, ContactNumber, Purpose, visit_date
+            FROM Visitor where CAST(visit_date AS DATE)=CAST(GETDATE() AS DATE)
+            ORDER BY CreatedTime;
+
+        """
+        visitor_details = pd.read_sql(detailed_query, conn)
+
+        conn.close()
+
+        # Convert data to lists for passing to the template
+        date_data = data['VisitDate'].tolist()  # Dates for x-axis
+        visitor_data = data['VisitorCount'].tolist()  # Counts for y-axis
+        visitor_list = visitor_details[['empno', 'Name', 'ContactNumber', 'Purpose', 'visit_date']].to_dict(orient='records')  # List of visitors
+
+        # Render the template with the data
+        return render_template('daily_visitors.html', dates=date_data, visitors=visitor_data, visitor_list=visitor_list)
+
+    @view_reports.route('/api/visitors/monthly', methods=['GET'])
+    def monthly_visitors():
+        conn = db.engine.connect()
+        query = """
+            SELECT FORMAT(visit_date, 'yyyy-MM') AS VisitMonth, COUNT(*) AS VisitorCount
+            FROM Visitor 
+            GROUP BY FORMAT(visit_date, 'yyyy-MM')
+            ORDER BY VisitMonth
+        """
+        data = pd.read_sql(query, conn)
+
+        # Query to get detailed visitor data (visitor names, times, etc.)
+        detailed_query = """
+            SELECT empno, Name, ContactNumber, Purpose, visit_date
+            FROM Visitor where FORMAT(visit_date, 'yyyy-MM')=FORMAT(GETDATE(), 'yyyy-MM')
+            ORDER BY CreatedTime;
+
+        """
+        visitor_details = pd.read_sql(detailed_query, conn)
+        conn.close()
+        # Convert data to a list of dicts for easy access in the template
+        date_data = data['VisitMonth'].tolist()  # Dates for x-axis
+        visitor_data = data['VisitorCount'].tolist()  # Counts for y-axis
+        visitor_list = visitor_details[['empno', 'Name', 'ContactNumber', 'Purpose', 'visit_date']].to_dict(orient='records')  # List of visitors
+
+        return render_template('monthly_visitors.html', dates=date_data, visitors=visitor_data, visitor_list=visitor_list)
+        #return jsonify(data.to_dict(orient='records'))
+
+    @view_reports.route('/api/visitors/department', methods=['GET'])
+    def department_visitors():
+        conn = db.engine.connect()
+        query = """
+            SELECT D.dname AS Department, COUNT(*) AS VisitorCount
+            FROM Visitor V
+            JOIN Employee E ON V.empno = E.empno  
+            JOIN DEPT D ON E.deptno = D.deptno   
+            GROUP BY D.dname                     
+            ORDER BY VisitorCount DESC;          
+        """
+        data = pd.read_sql(query, conn)
+        conn.close()
+        return jsonify(data.to_dict(orient='records'))
+
+    @view_reports.route('/api/visitors/employee', methods=['GET'])
+    def employee_visitors():
+        conn = db.engine.connect()
+        query = """
+            SELECT E.EMPNAME AS EmployeeName, COUNT(*) AS VisitorCount
+            FROM Visitor V
+            JOIN Employee E ON V.empno = E.empno   
+            GROUP BY E.EMPNAME                       
+            ORDER BY VisitorCount DESC;            
+
+        """
+        data = pd.read_sql(query, conn)
+        conn.close()
+        return jsonify(data.to_dict(orient='records'))
 
 
 # Run the application
