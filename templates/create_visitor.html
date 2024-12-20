@@ -75,9 +75,20 @@
 
         <!-- Date and Time Picker -->
         <div class="mb-3">
-            <label for="visit_date" class="form-label">Date and Time of Visit:</label>
+            <label for="visit_date" class="form-label">Visit Start Date</label>
             <div class="input-group">
                 <input type="text" id="visit_date" name="visit_date" class="form-control" placeholder="Select date and time" required>
+                <div class="input-group-append">
+                    <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date and Time Picker -->
+        <div class="mb-3">
+            <label for="visit_end_date" class="form-label">Visit End Date</label>
+            <div class="input-group">
+                <input type="text" id="visit_end_date" name="visit_end_date" class="form-control" placeholder="Select date and time" required>
                 <div class="input-group-append">
                     <span class="input-group-text"><i class="fa fa-calendar"></i></span>
                 </div>
@@ -104,7 +115,7 @@
 
     <!-- Include Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    
+
     <script>
         // Initialize Flatpickr with validation
         document.addEventListener("DOMContentLoaded", function () {
@@ -115,6 +126,21 @@
                 onClose: function (selectedDates, dateStr, instance) {
                     // Set the value of the input to ensure form validation works
                     document.getElementById('visit_date').value = dateStr;
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Initialize Flatpickr with validation
+        document.addEventListener("DOMContentLoaded", function () {
+            flatpickr("#visit_end_date", {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                defaultDate: new Date(), // Default date set to now
+                onClose: function (selectedDates, dateStr, instance) {
+                    // Set the value of the input to ensure form validation works
+                    document.getElementById('visit_end_date').value = dateStr;
                 }
             });
         });

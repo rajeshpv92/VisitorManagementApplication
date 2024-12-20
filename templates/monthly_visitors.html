@@ -18,20 +18,20 @@
         }
 
         .list-container {
-            flex: 0 0 60%; /* Fixed to 60% of the container's width */
+            flex: 0 0 60%;
             border: 1px solid #ddd;
             padding: 15px;
-            box-sizing: border-box; /* Ensures padding does not affect overall width */
-            height: 400px; /* Fixed height for the table */
-            overflow-y: auto; /* Enables vertical scrolling if content exceeds the height */
+            box-sizing: border-box;
+            height: 400px;
+            overflow-y: auto;
         }
 
         .chart-container {
-            flex: 0 0 35%; /* Fixed to 35% of the container's width */
+            flex: 0 0 35%;
             padding: 15px;
             max-width: 400px;
-            box-sizing: border-box; /* Ensures padding does not affect overall width */
-            height: 500px; /* Increased height for the chart */
+            box-sizing: border-box;
+            height: 500px;
         }
 
         table {
@@ -52,10 +52,33 @@
         h1 {
             text-align: center;
         }
+
+        /* Centered dropdown */
+        .dropdown-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .dropdown-container select {
+                width: 150px;
+                font-size: 14px;
+                padding: 5px;
+                margin: 0 auto;
+            }
     </style>
 </head>
 <body>
     <h1>Monthly Visitors</h1>
+
+    <!-- Dropdown for selecting chart type -->
+    <div class="dropdown-container">
+        <label for="chartType" class="form-label">Select Chart Type:</label>
+        <select id="chartType" class="form-select">
+            <option value="line" selected>Line</option>
+            <option value="bar">Bar</option>
+            <option value="radar">Radar</option>
+        </select>
+    </div>
 
     <div class="container">
         <!-- List of visitors -->
@@ -72,7 +95,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for visitor in visitor_list[:5] %}  <!-- Only show first 5 records -->
+                    {% for visitor in visitor_list[:5] %}
                     <tr>
                         <td>{{ visitor.empno }}</td>
                         <td>{{ visitor.Name }}</td>
@@ -92,53 +115,61 @@
     </div>
 
     <script>
-        // Data passed from Flask (the `dates` and `visitors` variables from Flask backend)
-        const months = {{ dates | tojson }};  // Last 10 months (e.g., ['Jan 2024', 'Feb 2024', 'Mar 2024'])
-        const visitors = {{ visitors | tojson }};  // Visitor counts for each month
+        // Data passed from Flask
+        const months = {{ dates | tojson }};
+        const visitors = {{ visitors | tojson }};
+
+        // Default chart type
+        let currentChartType = 'line';
 
         // Create the chart
         const ctx = document.getElementById('visitorChart').getContext('2d');
-        const visitorChart = new Chart(ctx, {
-            type: 'line',  // You can change the chart type (e.g., 'bar', 'line')
-            data: {
-                labels: months,  // X-axis labels (months)
-                datasets: [{
-                    label: 'Visitor Count',
-                    data: visitors,  // Y-axis data (visitor counts per month)
-                    borderColor: 'rgba(75, 192, 192, 1)',  // Line color
-                    fill: false  // If you want a filled area under the line, set it to true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: function(tooltipItem) {
-                                return `Month: ${tooltipItem[0].label}`;  // Custom tooltip title
-                            }
-                        }
-                    }
+        let visitorChart = createChart(currentChartType);
+
+        // Function to create the chart
+        function createChart(type) {
+            return new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Visitor Count',
+                        data: visitors,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    }]
                 },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Month'
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
                         }
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Visitor Count'
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
                         },
-                        beginAtZero: false  // Start Y-axis at zero
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Visitor Count'
+                            },
+                            beginAtZero: false
+                        }
                     }
                 }
-            }
+            });
+        }
+
+        // Update chart type dynamically
+        document.getElementById('chartType').addEventListener('change', function () {
+            const newType = this.value;
+            visitorChart.destroy(); // Destroy the current chart
+            visitorChart = createChart(newType); // Create a new chart with the selected type
         });
     </script>
 

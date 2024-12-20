@@ -7,6 +7,7 @@ class EmployeeInfo(db.Model):
     ID = db.Column(db.Integer, primary_key=True)
     EMPNO = db.Column(db.Integer, primary_key=True)
     EMPNAME = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
     MobileNo = db.Column(db.String(15), nullable=False)  # Keeping as String for flexibility
     DEPTNO = db.Column(db.Integer, db.ForeignKey('DEPT.DEPTNO'), nullable=False)  # ForeignKey referencing DEPT
     CreatedBy = db.Column(db.String(255), nullable=False)

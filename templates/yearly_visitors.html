@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Visitors</title>
+    <title>Yearly Visitors</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
-    <!-- Include Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <style>
-        /* Basic layout for two columns */
         .container {
             display: flex;
             justify-content: space-between;
             gap: 30px;
+            margin: 20px;
         }
 
         .list-container {
@@ -44,27 +42,18 @@
             background-color: #f2f2f2;
         }
 
-        /* Centered dropdown */
-        .dropdown-container {
+        h1 {
             text-align: center;
-            margin-bottom: 20px;
         }
-
-            .dropdown-container select {
-                width: 150px;
-                font-size: 14px;
-                padding: 5px;
-                margin: 0 auto;
-            }
     </style>
 </head>
 <body>
-    <h1>Daily Visitors</h1>
+    <h1>Yearly Visitors</h1>
 
     <!-- Dropdown for selecting chart type -->
-    <div class="dropdown-container">
-        <label for="chartType" class="form-label">Select Chart Type:</label>
-        <select id="chartType" class="form-select">
+    <div class="text-center mb-3">
+        <label for="chartType" class="form-label d-block" style="font-size: 16px;">Select Chart Type:</label>
+        <select id="chartType" class="form-select" style="width: 150px; margin: 0 auto; font-size: 14px; padding: 5px;">
             <option value="line" selected>Line</option>
             <option value="bar">Bar</option>
             <option value="radar">Radar</option>
@@ -106,48 +95,39 @@
     </div>
 
     <script>
-        // Data passed from Flask
-        const dates = {{ dates | tojson }};
-        const visitors = {{ visitors | tojson }};
+        const years = {{ dates | tojson }};  // Years from the backend
+        const visitorCounts = {{ visitors | tojson }};  // Visitor counts per year
 
-        // Default chart type
-        let currentChartType = 'line';
-
-        // Create the chart
+        // Initialize chart
         const ctx = document.getElementById('visitorChart').getContext('2d');
-        let visitorChart = createChart(currentChartType);
+        let chartType = 'line';  // Default chart type
 
-        // Function to create the chart
-        function createChart(type) {
+        const createChart = (type) => {
             return new Chart(ctx, {
-                type: type,
+                type: type,  // Dynamic chart type
                 data: {
-                    labels: dates,
+                    labels: years,  // X-axis labels (years)
                     datasets: [{
                         label: 'Visitor Count',
-                        data: visitors,
+                        data: visitorCounts,  // Y-axis data
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
                         borderColor: 'rgba(75, 192, 192, 1)',
-                        fill: false
+                        borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
                         legend: {
+                            display: true,
                             position: 'top',
-                        }
+                        },
                     },
                     scales: {
                         x: {
-                            type: 'category',
                             title: {
                                 display: true,
-                                text: 'Visit Date'
-                            },
-                            ticks: {
-                                callback: function (value, index, values) {
-                                    return value; // Display the date as is
-                                }
+                                text: 'Year'
                             }
                         },
                         y: {
@@ -155,28 +135,23 @@
                                 display: true,
                                 text: 'Visitor Count'
                             },
-                            beginAtZero: false,
-                            ticks: {
-                                stepSize: 1,
-                                callback: function (value) {
-                                    return Number.isInteger(value) ? value : ''; // Only show integers
-                                }
-                            }
+                            beginAtZero: true
                         }
                     }
                 }
             });
-        }
+        };
 
-        // Update chart type dynamically
+        let visitorChart = createChart(chartType);  // Create the initial chart
+
+        // Event listener for chart type selection
         document.getElementById('chartType').addEventListener('change', function () {
-            const newType = this.value;
-            visitorChart.destroy(); // Destroy the current chart
-            visitorChart = createChart(newType); // Create a new chart with the selected type
+            chartType = this.value;  // Get selected chart type
+            visitorChart.destroy();  // Destroy the old chart
+            visitorChart = createChart(chartType);  // Create a new chart with the selected type
         });
     </script>
 
-    <br /><br />
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 </body>
 </html>

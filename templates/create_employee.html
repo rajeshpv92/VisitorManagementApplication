@@ -50,17 +50,20 @@
 
     <!-- Form to create employee -->
     <form method="POST">
-        <label for="empno">Employee No.:</label>
-        <input type="text" id="empno" name="empno" required><br><br>
+        <label for="empno" class="form-label">Employee No.:</label>
+        <input type="text" id="empno" name="empno" class="form-control" required><br><br>
 
-        <label for="empname">Employee Name:</label>
-        <input type="text" id="empname" name="empname" required><br><br>
+        <label for="empname" class="form-label">Employee Name:</label>
+        <input type="text" id="empname" name="empname" class="form-control" required><br><br>
 
-        <label for="mobileno">Mobile No.:</label>
-        <input type="text" id="mobileno" name="mobileno" required><br><br>
+        <label for="mobileno" class="form-label">Mobile No.:</label>
+        <input type="text" id="mobileno" name="mobileno" class="form-control" required><br><br>
+
+        <label for="email" class="form-label">Email</label>
+        <input type="text" id="email" name="email" class="form-control" required pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
 
         <!-- Department dropdown -->
-        <label for="Deptno">Department:</label>
+        <label for="Deptno" class="form-label">Department:</label>
         <select id="Deptno" name="Deptno" required>
             <option value="" disabled selected>Select a Department</option>
             {% for department in departments %}

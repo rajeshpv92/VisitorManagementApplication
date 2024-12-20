@@ -48,6 +48,8 @@
     <Content Include="templates\create_user.html" />
     <Content Include="templates\create_employee.html" />
     <Content Include="templates\create_visitor.html" />
+    <Content Include="templates\edit_employee.html" />
+    <Content Include="templates\yearly_visitors.html" />
     <Content Include="templates\monthly_visitors.html" />
     <Content Include="templates\daily_visitors.html" />
     <Content Include="templates\dashboard.html" />

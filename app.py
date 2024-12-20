@@ -19,6 +19,11 @@ import bcrypt
 import re
 from utils import hash_password  # Now import from your utils.py
 
+from flask_mail import Message, Mail
+
+# Initialize the Mail object globally
+mail = Mail()
+
 
 # Define the Blueprint
 view_reports = Blueprint('view_reports', __name__, url_prefix='/view_reports')
@@ -40,6 +45,17 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://test:test@192.168.29.13:1433/master?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=no"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Add email configuration in your app
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Replace with your SMTP server
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_USERNAME'] = 'moonlights1321@gmail.com'
+    app.config['MAIL_PASSWORD'] = 'kjibhyzsznlbjyps'
+    app.config['MAIL_DEFAULT_SENDER'] = 'moonlights1321@gmail.com'
+     # Bind Mail to the app
+    mail.init_app(app)
+    
     # Initialize database
     db.init_app(app)
 
@@ -56,6 +72,8 @@ def create_app():
 
     with app.app_context():
         db.create_all()  # Ensure tables are created
+
+    
 
     return app
 
@@ -279,26 +297,24 @@ def register_routes(app):
     # Create Visitor definition.
     @app.route("/create_visitor", methods=["GET", "POST"])
     def create_visitor():
-
-         # Initialize photo variable to None outside of the POST check
-        photo = None
-
         if request.method == "POST":
             name = request.form.get("name")
             contact = request.form.get("contact")
-            empno = request.form.get("empno")  # Ensure you are getting the empno value
+            empno = request.form.get("empno")  # Employee number selected from dropdown
             purpose = request.form.get("purpose")
             address = request.form.get("address")
             photo = request.files.get("photo")
             visitdate = request.form.get("visit_date")
+            visit_end_date = request.form.get("visit_end_date")
             created_by = updated_by = session.get("username")
 
-            # Validation: check if all required fields are provided
-            if not name or not contact or not purpose or not visitdate:
-                flash("All fields are required.", "danger")
+            # Fetch employee email based on the selected empno
+            employee = EmployeeInfo.query.filter_by(EMPNO=empno).first()
+            if not employee:
+                flash("Employee not found.", "danger")
                 return redirect(url_for("create_visitor"))
 
-                 # Save photo to the upload folder
+             # Save photo to the upload folder
             photo_path = None
             if photo:
                 filename = secure_filename(photo.filename)
@@ -307,38 +323,80 @@ def register_routes(app):
                 # Save relative path for database
                 photo_path = f'static/uploads/{filename}'
 
-                
-                try:
-                    # Create a new VisitorInfo object to add to the database
-                    new_visitor = VisitorInfo(
-                        Name=name,
-                        ContactNumber=contact,
-                        Purpose=purpose,
-                        empno=empno,
-                        visit_date=visitdate,
-                        Address=address,
-                        photo=photo_path,  # Use the correct column name from the model
-                        CreatedBy=created_by,
-                        UpdatedBy=updated_by,
-                        CreatedTime=datetime.now(),
-                        UpdatedTime=datetime.now(),
-                        CheckIn=datetime.now(),
-                        CheckOut=None
-                    )
-                    db.session.add(new_visitor)
-                    db.session.commit()
-                    flash(f"Visitor {name} added successfully!", "success")
-                    return redirect(url_for("create_visitor"))
+            employee_email = employee.email  # Assuming EMAIL is a column in EmployeeInfo
 
-                except Exception as e:
-                    db.session.rollback()
-                    flash(f"Error adding visitor: {str(e)}", "danger")
-                    return redirect(url_for("dashboard"))
-        
-        # Fetch departments here inside the route
+            # Save visitor to database
+            try:
+                new_visitor = VisitorInfo(
+                    Name=name,
+                    ContactNumber=contact,
+                    Purpose=purpose,
+                    empno=empno,
+                    email=employee_email,
+                    visit_date=visitdate,
+                    visit_end_date=visit_end_date,
+                    Address=address,
+                    photo=photo_path,  # Use the correct column name from the model
+                    CreatedBy=created_by,
+                    UpdatedBy=updated_by,
+                    CreatedTime=datetime.now(),
+                    UpdatedTime=datetime.now(),
+                    CheckIn=datetime.now(),
+                    CheckOut=None
+                )
+                db.session.add(new_visitor)
+                db.session.commit()
+
+                # Send email to the employee
+                send_email_to_employee(employee_email, name, purpose, visitdate)
+
+                flash(f"Visitor {name} added successfully!", "success")
+                return redirect(url_for("create_visitor"))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error adding visitor: {str(e)}", "danger")
+                return redirect(url_for("create_visitor"))
+
         employees = EmployeeInfo.query.all()
+        return render_template("create_visitor.html", employees=employees)
 
-        return render_template("create_visitor.html", employees=employees)                       
+
+    def send_email_to_employee(email, visitor_name, purpose, visit_date):
+        """
+        Sends an email notification to the employee about the visitor.
+        """
+        try:
+            subject = f"New Visitor: {visitor_name}"
+            body = f"""
+            Dear Employee,
+
+            You have a new visitor.
+
+            Visitor Name: {visitor_name}
+            Purpose: {purpose}
+            Visit Date: {visit_date}
+
+            Please attend to them promptly.
+
+            Regards,
+            Visitor Management System
+            """
+
+            # Using Flask-Mail
+            msg = Message(subject, recipients=[email])
+            msg.body = body
+            mail.send(msg) 
+            print(f"Email sent to {email}")
+
+        except Exception as e:
+            print(f"Error sending email: {e}")
+            # Log the error or flash a message
+            logging.error(f"Email sending failed: {e}")
+            raise
+
+
+
 
     #Create View Visitor definition.
     @app.route("/view_visitors", methods=["GET", "POST"])
@@ -464,12 +522,13 @@ def register_routes(app):
         if request.method == "POST":
             empno = request.form.get("empno")
             empname = request.form.get("empname")
+            email = request.form.get("email")
             mobileno = request.form.get("mobileno")
             deptno = request.form.get("Deptno")  # Ensure you are getting the Deptno value
             created_by = updated_by = session.get("username")
 
             # Validation: check if all required fields are provided
-            if not empno or not empname or not mobileno or not deptno:
+            if not empno or not empname or not mobileno or not deptno or not email:
                 flash("All fields are required.", "danger")
                 return redirect(url_for("create_employee"))
 
@@ -479,6 +538,7 @@ def register_routes(app):
                     EMPNO=empno,
                     EMPNAME=empname,
                     MobileNo=mobileno,
+                    email=email,
                     DEPTNO=deptno,  # Ensure DEPTNO is passed correctly
                     CreatedBy=created_by,
                     UpdatedBy=updated_by,
@@ -541,6 +601,7 @@ def register_routes(app):
                 # Get form data
                 empno = request.form.get("empno")
                 empname = request.form.get("empname")
+                email = request.form.get("email")
                 mobileno = request.form.get("mobileno")
                 deptno = request.form.get("Deptno")
                 updated_by = session.get("username")
@@ -554,6 +615,7 @@ def register_routes(app):
                 employee.EMPNO = empno
                 employee.EMPNAME = empname
                 employee.MobileNo = mobileno
+                employee.email = email
                 employee.DEPTNO = deptno
                 employee.UpdatedBy = updated_by
                 employee.UpdatedTime = datetime.now()
@@ -633,10 +695,11 @@ def register_routes(app):
                 empno = int(row[mappings.get("EMPNO")])
                 empname = row[mappings.get("EMPNAME")]
                 mobileno = int(row[mappings.get("MobileNo")])
+                email = row[mappings.get("email")]
                 deptno = row[mappings.get("DEPTNO")]
 
                 
-                if not all([empno, empname, mobileno, deptno]):
+                if not all([empno, empname, mobileno, deptno, email]):
                     errors.append(f"Missing data in row {index + 1}")
                     continue
 
@@ -645,6 +708,7 @@ def register_routes(app):
                     EMPNO=empno,
                     EMPNAME=empname,
                     MobileNo=mobileno,
+                    email=email,
                     DEPTNO=deptno,
                     CreatedBy='admin',  # Replace with the logged-in user
                     UpdatedBy='admin',  # Replace with the logged-in user
@@ -769,6 +833,35 @@ def register_routes(app):
         return render_template('monthly_visitors.html', dates=date_data, visitors=visitor_data, visitor_list=visitor_list)
         #return jsonify(data.to_dict(orient='records'))
 
+    @view_reports.route('/api/visitors/yearly', methods=['GET'])
+    def yearly_visitors():
+        conn = db.engine.connect()
+        query = """
+            SELECT FORMAT(visit_date, 'yyyy') AS VisitYear, COUNT(*) AS VisitorCount
+            FROM Visitor
+            GROUP BY FORMAT(visit_date, 'yyyy')
+            ORDER BY VisitYear;
+        """
+        data = pd.read_sql(query, conn)
+
+        # Query to get detailed visitor data (visitor names, times, etc.)
+        detailed_query = """
+            SELECT empno, Name, ContactNumber, Purpose, visit_date
+            FROM Visitor
+            WHERE YEAR(visit_date) = YEAR(GETDATE())
+            ORDER BY CreatedTime;
+
+        """
+        visitor_details = pd.read_sql(detailed_query, conn)
+        conn.close()
+        # Convert data to a list of dicts for easy access in the template
+        date_data = data['VisitYear'].tolist()  # Dates for x-axis
+        visitor_data = data['VisitorCount'].tolist()  # Counts for y-axis
+        visitor_list = visitor_details[['empno', 'Name', 'ContactNumber', 'Purpose', 'visit_date']].to_dict(orient='records')  # List of visitors
+
+        return render_template('yearly_visitors.html', dates=date_data, visitors=visitor_data, visitor_list=visitor_list)
+        #return jsonify(data.to_dict(orient='records'))
+
     @view_reports.route('/api/visitors/department', methods=['GET'])
     def department_visitors():
         conn = db.engine.connect()
@@ -799,6 +892,73 @@ def register_routes(app):
         conn.close()
         return jsonify(data.to_dict(orient='records'))
 
+    @app.route('/get_filter_options', methods=['GET'])
+    def get_filter_options():
+        try:
+            # Fetch unique visitor names from the database
+            visitors = VisitorInfo.query.with_entities(VisitorInfo.Name).distinct().all()
+
+            # Convert the result to a plain list of visitor names
+            visitor_names = [visitor[0] for visitor in visitors]
+
+            # Return visitor names as a JSON response
+            return jsonify({
+                "visitors": visitor_names
+            })
+
+        except Exception as e:
+            print(f"Error fetching filter options: {e}")
+            return jsonify({"error": "An error occurred while fetching filter options."}), 500
+
+
+    @app.route('/generate_report', methods=['POST'])
+    def generate_report():
+        try:
+            # Log the incoming request body for debugging
+            print(f"Received request: {request.data}")
+    
+            # Parse JSON data from the request body
+            filters = request.get_json()
+
+            # If filters is None, log the error and raise an exception
+            if filters is None:
+                raise ValueError("Request body is not a valid JSON.")
+    
+            # Extract filter values
+            visitor_name = filters.get('visitorName', '').lower()
+            visit_date = filters.get('visitDate', '')
+
+            print(f"Visitor Name: {visitor_name}, Visit Date: {visit_date}")
+
+            # Fetch actual visitor data from your database (replace with your model)
+            visitor_data = session.query(
+                VisitorInfo.Name,
+                VisitorInfo.VisitDate,
+                VisitorInfo.Department,
+                VisitorInfo.Empno,
+                VisitorInfo.Phone,
+                VisitorInfo.Purpose
+            ).all()
+
+            # Convert the fetched data to a list of dictionaries
+            visitor_data = [
+            {"name": "John Doe", "visit_date": "2024-12-20", "department": "HR", "empno": "1234", "phone": "1234567890", "purpose": "Meeting"}
+        ]
+
+            # Apply filters
+            filtered_data = [
+                entry for entry in visitor_data if
+                (not visitor_name or visitor_name in entry['name'].lower()) and
+                (not visit_date or visit_date == entry['visit_date'])
+            ]
+
+            # Return the filtered report data
+            return jsonify({"report": filtered_data})
+
+        except Exception as e:
+            # Log the full exception details
+            print(f"Error generating report: {str(e)}")
+            return jsonify({"error": f"An error occurred while generating the report: {str(e)}"}), 500
 
 # Run the application
 if __name__ == "__main__":
