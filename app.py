@@ -3,6 +3,7 @@ import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Blueprint
 from datetime import datetime
 import logging
+from sqlalchemy import func
 
 from numpy import append
 from models.visitor import VisitorInfo  # Ensure correct import
@@ -18,7 +19,7 @@ from config import Config  # Import your config class
 import bcrypt
 import re
 from utils import hash_password  # Now import from your utils.py
-
+from twilio.rest import Client
 from flask_mail import Message, Mail
 
 # Initialize the Mail object globally
@@ -76,6 +77,13 @@ def create_app():
     
 
     return app
+# Twilio Configuration
+TWILIO_PHONE_NUMBER = "+12185027429"
+TWILIO_ACCOUNT_SID = "AC5c5089546c5959a3ebb5bb32daae691a"
+TWILIO_AUTH_TOKEN = "751d764d457ed71d9dd2bf8647368a0b"
+
+# Initialize Twilio Client
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 # Setup logging for production
 def setup_logging(app):
@@ -909,56 +917,212 @@ def register_routes(app):
         except Exception as e:
             print(f"Error fetching filter options: {e}")
             return jsonify({"error": "An error occurred while fetching filter options."}), 500
+    
+    from flask import Flask, request, jsonify
 
 
-    @app.route('/generate_report', methods=['POST'])
-    def generate_report():
+
+    @app.route('/preview_records', methods=['POST'])
+    def preview_records():
         try:
-            # Log the incoming request body for debugging
-            print(f"Received request: {request.data}")
-    
-            # Parse JSON data from the request body
-            filters = request.get_json()
+            data = request.get_json()
+            visitor_name = data.get('visitorName')
+            visit_date = data.get('visitDate')
+            visit_end_date = data.get('visitendDate')
+            # Validate inputs
+            if not visitor_name or not visit_date:
+                return jsonify({"error": "Visitor Name and Visit Date are required"}), 400
 
-            # If filters is None, log the error and raise an exception
-            if filters is None:
-                raise ValueError("Request body is not a valid JSON.")
-    
-            # Extract filter values
-            visitor_name = filters.get('visitorName', '').lower()
-            visit_date = filters.get('visitDate', '')
+            # If only date is passed, set the default time (e.g., '00:00:00')
+            if len(visit_date) == 10:  # 'YYYY-MM-DD' format (date only)
+                visit_date += " 00:00:00"  # Default time to midnight
 
-            print(f"Visitor Name: {visitor_name}, Visit Date: {visit_date}")
+            if len(visit_end_date) == 10:  # 'YYYY-MM-DD' format (date only)
+                visit_end_date += " 00:00:00"  # Default time to midnight
 
-            # Fetch actual visitor data from your database (replace with your model)
-            visitor_data = session.query(
-                VisitorInfo.Name,
-                VisitorInfo.VisitDate,
-                VisitorInfo.Department,
-                VisitorInfo.Empno,
-                VisitorInfo.Phone,
-                VisitorInfo.Purpose
+            # Convert visit_date string to datetime object
+            visit_date = datetime.strptime(visit_date, "%Y-%m-%d %H:%M:%S")
+            visit_end_date = datetime.strptime(visit_end_date, "%Y-%m-%d %H:%M:%S")
+
+            # Query database for matching records (case-insensitive for name)
+            records = VisitorInfo.query.filter(
+                VisitorInfo.Name.ilike(f"%{visitor_name}%"),  # Use `ilike` for case-insensitive search
+                VisitorInfo.visit_date >= visit_date,
+                VisitorInfo.visit_end_date <= visit_end_date
+                #VisitorInfo.employee.EMPNAME
             ).all()
 
-            # Convert the fetched data to a list of dictionaries
-            visitor_data = [
-            {"name": "John Doe", "visit_date": "2024-12-20", "department": "HR", "empno": "1234", "phone": "1234567890", "purpose": "Meeting"}
-        ]
+            try:
+            # Convert records to a list of dictionaries
+                results = [
+                    {
+                        "empno": record.empno,
+                        "name": record.Name,
+                        "phone": record.ContactNumber,
+                        "purpose": record.Purpose,
+                        "visit_date": record.visit_date,
+                        "visit_end_date": record.visit_end_date,
+                        "employee": record.employee.EMPNAME, 
+                    }
+                    for record in records
+                ]
+            except Exception as e:
+                print(f"Error: {e}")  # Debugging exception details
+                return jsonify({"report": records.Name})
 
-            # Apply filters
-            filtered_data = [
-                entry for entry in visitor_data if
-                (not visitor_name or visitor_name in entry['name'].lower()) and
-                (not visit_date or visit_date == entry['visit_date'])
-            ]
-
-            # Return the filtered report data
-            return jsonify({"report": filtered_data})
+            # Return results
+            return jsonify({"preview": results}), 200
 
         except Exception as e:
-            # Log the full exception details
-            print(f"Error generating report: {str(e)}")
-            return jsonify({"error": f"An error occurred while generating the report: {str(e)}"}), 500
+            print(f"Error: {e}")  # Debugging exception details
+            return jsonify({"error": "Internal Server Error"}), 500
+            
+
+    from datetime import datetime
+
+    # @app.route('/generate_report', methods=['POST'])
+    # def generate_report():
+    #     try:
+    #         # Log the incoming request body for debugging
+    #         print(f"Received request: {request.data}")
+
+    #         # Parse JSON data from the request body
+    #         filters = request.get_json()
+
+    #         # Validate that the request body is valid JSON
+    #         if not filters:
+    #             return jsonify({"error": "Invalid or empty JSON body provided."}), 400
+
+    #         # Extract filter values
+    #         visitor_name = filters.get('visitorName', '')
+    #         visit_date = filters.get('visitDate', '')
+
+    #         # If only date is passed, add default time '00:00:00'
+    #         if len(visit_date) == 10:  # 'YYYY-MM-DD' format (date only)
+    #             visit_date += " 00:00:00"  # Add midnight as default time
+
+    #         # Convert visit_date string to datetime object (including default time)
+    #         try:
+    #             visit_date = datetime.strptime(visit_date, "%Y-%m-%d %H:%M:%S")
+    #         except ValueError:
+    #             return jsonify({"error": "Invalid date format. Expected 'YYYY-MM-DD'."}), 400
+
+    #         print(f"Visitor Name: {visitor_name}, Visit Date: {visit_date}")
+
+    #         # Fetch visitor data from the database using db.session.query
+    #         visitor_data = db.session.query(
+    #             VisitorInfo.Name,
+    #             VisitorInfo.visit_date,
+    #             VisitorInfo.email,
+    #             VisitorInfo.Purpose,
+    #             VisitorInfo.ContactNumber,
+    #             VisitorInfo.empno
+    #         ).all()
+
+    #         # Convert the query result to a list of dictionaries for easier filtering
+    #         visitor_data_list = [
+    #             {
+    #                 "name": entry.Name,
+    #                 "visit_date": entry.visit_date,
+    #                 "email": entry.email,
+    #                 "purpose": entry.Purpose,
+    #                 "contact_number": entry.ContactNumber,
+    #                 "empno": entry.empno,
+    #             }
+    #             for entry in visitor_data
+    #         ]
+
+    #         # Apply filters - compare visit_date with the time included
+    #         filtered_data = [
+    #             entry for entry in visitor_data_list if
+    #             (not visitor_name or visitor_name.lower() in entry['name'].lower()) and
+    #             (not visit_date or visit_date <= entry['visit_date'])  # Compare datetime objects
+    #         ]
+
+    #         # Return the filtered report data
+    #         return jsonify({"report": filtered_data})
+
+    #     except Exception as e:
+    #         # Log the full exception details
+    #         print(f"Error generating report: {str(e)}")
+    #         return jsonify({"error": f"An error occurred while generating the report: {str(e)}"}), 500
+    
+        
+        # Function to validate international phone number format
+    def is_valid_phone_number(phone_number):
+        # Regular expression to check if the phone number starts with '+' and contains digits
+        # and ensures a valid length (at least 10 digits + country code)
+        pattern = r'^\+?[1-9]\d{1,14}$'  # Matches phone numbers starting with '+' followed by digits
+        return re.match(pattern, phone_number) is not None
+
+    # Endpoint to display the form for the employee
+    @app.route('/web_request', methods=['GET', 'POST'])
+    def web_request():
+        if request.method == 'POST':
+            # Get form data (visitor phone number and comments)
+            visitor_phone = request.form.get('visitor_phone')  # Visitor's phone number
+            additional_comments = request.form.get('comments')  # Additional comments from the employee
+
+            # Validate phone number format (you can enhance this part with more validation)
+            if not is_valid_phone_number(visitor_phone):
+                flash("Invalid phone number. Please enter a valid phone number with country code.", "danger")
+                return redirect(url_for('web_request'))
+
+            # Generate the registration link for the visitor (this will be the form link)
+            visitor_link = url_for('visitor_reg_form', _external=True)  # This is the registration page link
+        
+            # SMS body that will be sent to the visitor
+            sms_body = f"Hello, you have a visitor registration. Please fill out the form here: {visitor_link}"
+            if additional_comments:
+                sms_body += f"\nAdditional Comments: {additional_comments}"
+
+            # Send SMS to visitor using Twilio
+            try:
+                message = client.messages.create(
+                    body=sms_body,
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=visitor_phone
+                )
+                flash("Visitor registration link sent successfully!", "success")
+            except Exception as e:
+                flash(f"Error sending SMS: {str(e)}", "danger")
+                return redirect(url_for('web_request'))
+
+            return redirect(url_for('web_request'))
+
+        # Render the form for the employee
+        return render_template('web_request.html')
+
+    # Endpoint for the visitor to fill out the registration form
+    @app.route('/visitor_reg_form', methods=['GET', 'POST'])
+    def visitor_reg_form():
+        if request.method == 'POST':
+            # Get form data from visitor (name, contact, etc.)
+            name = request.form.get('name')
+            contact = request.form.get('contact')
+            purpose = request.form.get('purpose')
+            visit_date = request.form.get('visit_date')
+            visit_end_date = request.form.get('visit_end_date')
+
+            # Save visitor information to the database (add database logic as required)
+            # Example: Save to a VisitorInfo model (this is a placeholder)
+            new_visitor = {
+                "name": name,
+                "contact": contact,
+                "purpose": purpose,
+                "visit_date": visit_date,
+                "visit_end_date": visit_end_date,
+                "created_at": datetime.now(),
+            }
+
+            # Simulate saving to the database
+            print(f"Visitor data saved: {new_visitor}")
+
+            flash("Visitor registration submitted successfully!", "success")
+            return redirect(url_for('visitor_reg_form'))
+
+        # Render the visitor registration form
+        return render_template('visitor_reg_form.html')
 
 # Run the application
 if __name__ == "__main__":

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Registration</title>
+</head>
+<body>
+    <h1>Visitor Registration Form</h1>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul>
+        {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <label for="name">Visitor Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="contact">Contact Number:</label>
+        <input type="text" id="contact" name="contact" required><br><br>
+
+        <label for="purpose">Purpose of Visit:</label>
+        <input type="text" id="purpose" name="purpose" required><br><br>
+
+        <label for="visit_date">Visit Date:</label>
+        <input type="date" id="visit_date" name="visit_date" required><br><br>
+
+        <label for="visit_end_date">Visit End Date:</label>
+        <input type="date" id="visit_end_date" name="visit_end_date" required><br><br>
+
+        <input type="submit" value="Submit Registration">
+    </form>
+
+</body>
+</html>

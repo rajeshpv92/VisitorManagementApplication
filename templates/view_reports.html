@@ -29,6 +29,10 @@
         .btn-export {
             margin-top: 20px;
         }
+
+        #noRecordsMessage {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -46,12 +50,16 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="visitDate">Visit Date</label>
+                    <label for="visitDate">Visit Start Date</label>
                     <input type="date" id="visitDate" class="form-control">
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button id="generateReport" class="btn btn-primary">Generate Report</button>
+                <div class="col-md-3">
+                    <label for="visitendDate">Visit End Date</label>
+                    <input type="date" id="visitendDate" class="form-control">
                 </div>
+                <!--<div class="col-md-3 d-flex align-items-end">
+                    <button id="generateReport" class="btn btn-primary">Generate Report</button>
+                </div>-->
             </div>
         </div>
 
@@ -66,18 +74,19 @@
                             <th>Phone</th>
                             <th>Purpose</th>
                             <th>Visit Date</th>
-                            <th>Department</th>
+                            <th>Employee</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dynamic rows based on filtered data -->
-
+                        <tr id="noRecordsMessage">
+                            <td colspan="6" class="text-center">Please select Visitor Name and Visit Date to preview records.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Export Button -->
+        <!-- Export Buttons -->
         <div class="btn-export">
             <button id="exportCSV" class="btn btn-success">Export to CSV</button>
             <button id="exportExcel" class="btn btn-success">Export to Excel</button>
@@ -89,7 +98,6 @@
         fetch('/get_filter_options')
             .then(response => response.json())
             .then(data => {
-                // Check if data contains visitor names
                 if (data.visitors && Array.isArray(data.visitors)) {
                     populateDropdown('visitorName', data.visitors);
                 } else {
@@ -100,9 +108,7 @@
 
         function populateDropdown(elementId, options) {
             const dropdown = document.getElementById(elementId);
-            dropdown.innerHTML = '<option value="">Select Visitor Name</option>'; // Clear previous options
-
-            // Loop through the options and append them to the dropdown
+            dropdown.innerHTML = '<option value="">Select Visitor Name</option>';
             options.forEach(option => {
                 const opt = document.createElement('option');
                 opt.value = option;
@@ -111,54 +117,115 @@
             });
         }
 
+        // Fetch Preview Records
+        async function fetchPreviewRecords() {
+            const visitorName = document.getElementById('visitorName').value;
+            const visitDate = document.getElementById('visitDate').value;
+            const visitendDate = document.getElementById('visitendDate').value;
 
-        // Generate report based on filters
-        async function generateReport() {
+            console.log('Preview Records Request:', { visitorName, visitDate, visitendDate }); // Debugging
+
+            if (!visitorName || !visitDate || !visitendDate) {
+                console.log('Validation failed: Missing visitorName or visitDate');
+                clearPreviewTable();
+                return;
+            }
+
             try {
-                const response = await fetch('/generate_report', {
+                const response = await fetch('/preview_records', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        visitorName: document.getElementById('visitorName').value,
-                        visitDate: document.getElementById('visitDate').value
-                    })
+                    body: JSON.stringify({ visitorName, visitDate, visitendDate }),
                 });
 
+                console.log('Preview Records Response:', response); // Debugging
+
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
+                    throw new Error(`Error fetching preview records: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log(data);
-                populateTable(data.report);
+                console.log('Preview Records Data:', data); // Debugging
+
+                if (data.error) {
+                    alert(data.error);
+                    clearPreviewTable();
+                    return;
+                }
+
+                populateTable(data.preview || []);
             } catch (error) {
-                console.error('Error generating report:', error);
-                alert('An error occurred while generating the report. Please try again.');
+                console.error('Error fetching preview records:', error);
             }
         }
 
 
+
+        function clearPreviewTable() {
+            const tableBody = document.querySelector('#reportTable tbody');
+            const noRecordsMessage = document.getElementById('noRecordsMessage');
+
+            tableBody.innerHTML = '';
+            if (noRecordsMessage) noRecordsMessage.style.display = ''; // Show message
+        }
+
         function populateTable(data) {
             const tableBody = document.querySelector('#reportTable tbody');
+            const noRecordsMessage = document.getElementById('noRecordsMessage');
+
             tableBody.innerHTML = ''; // Clear previous data
+
+            if (data.length === 0) {
+                if (noRecordsMessage) noRecordsMessage.style.display = ''; // Show message
+                return;
+            }
+
+            if (noRecordsMessage) noRecordsMessage.style.display = 'none'; // Hide message
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                                <td>${row.empno}</td>
-                                <td>${row.name}</td>
-                                <td>${row.phone}</td>
-                                <td>${row.purpose}</td>
-                                <td>${row.visit_date}</td>
-                                <td>${row.department}</td>
-                            `;
+            <td>${row.empno}</td>
+            <td>${row.name}</td>
+            <td>${row.phone}</td>
+            <td>${row.purpose}</td>
+            <td>${row.visit_date}</td>
+            <td>${row.employee}</td>
+        `;
                 tableBody.appendChild(tr);
             });
         }
 
-        // Event listeners
-        document.getElementById('generateReport').addEventListener('click', generateReport);
 
+        //async function generateReport() {
+        //    try {
+        //        const visitorName = document.getElementById('visitorName').value;
+        //        const visitDate = document.getElementById('visitDate').value;
+
+        //        if (!visitorName || !visitDate) {
+        //            alert('Please select Visitor Name and Visit Date to generate the report.');
+        //            return;
+        //        }
+
+        //        const response = await fetch('/generate_report', {
+        //            method: 'POST',
+        //            headers: { 'Content-Type': 'application/json' },
+        //            body: JSON.stringify({ visitorName, visitDate })
+        //        });
+
+        //        if (!response.ok) {
+        //            throw new Error(`Error generating report: ${response.status}`);
+        //        }
+
+        //        const data = await response.json();
+        //        populateTable(data.report || []);
+        //    } catch (error) {
+        //        console.error('Error generating report:', error);
+        //        alert('An error occurred while generating the report.');
+        //    }
+        //}
+
+        // Export functionality
         document.getElementById('exportCSV').addEventListener('click', function () {
             const table = document.getElementById('reportTable');
             const rows = table.querySelectorAll('tr');
@@ -177,9 +244,14 @@
             const wb = XLSX.utils.table_to_book(table, { sheet: 'Report' });
             XLSX.writeFile(wb, 'report.xlsx');
         });
+
+        // Event listeners
+        document.getElementById('visitorName').addEventListener('change', fetchPreviewRecords);
+        document.getElementById('visitDate').addEventListener('change', fetchPreviewRecords);
+        document.getElementById('visitendDate').addEventListener('change', fetchPreviewRecords);
+        document.getElementById('generateReport').addEventListener('click', generateReport);
     </script>
 
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
-
 </body>
 </html>
