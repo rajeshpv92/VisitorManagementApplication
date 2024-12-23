@@ -5,4 +5,3 @@ Flask-Bcrypt==1.0.1          # For password hashing
 pyodbc==5.2.0                # For connecting to SQL Server
 SQLAlchemy==2.0.36           # For advanced ORM support
 Werkzeug==3.1.3              # For core Flask utilities
-pyodbc==4.0.35
