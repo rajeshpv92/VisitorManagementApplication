@@ -1125,6 +1125,10 @@ def register_routes(app):
         return render_template('visitor_reg_form.html')
 
 # Run the application
+
+
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    port = int(os.environ.get("PORT", 8000))  # Default to 8000 if PORT is not set
+    app.run(host="0.0.0.0", port=port, debug=True)
+
